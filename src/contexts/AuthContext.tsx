@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "@/hooks/use-toast";
-import { useNavigate } from 'react-router-dom';
+import useCustomAuth from '@/hooks/useCustomAuth';
 
 interface AuthContextType {
   user: User | null;
@@ -33,6 +33,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const customAuth = useCustomAuth();
 
   // Initialize auth state by checking for existing session
   useEffect(() => {
@@ -104,32 +105,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signUp = async (name: string, email: string, password: string) => {
-    setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-          },
-        },
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
+      await customAuth.signUpWithCustomEmail(name, email, password);
     } catch (error: any) {
-      console.error('Error signing up:', error);
-      toast({
-        title: "Sign up failed",
-        description: error.message || "There was an error creating your account.",
-        variant: "destructive",
-      });
+      // Error is already handled by the signUpWithCustomEmail function
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -152,21 +132,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const resetPassword = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
+      await customAuth.resetPasswordWithCustomEmail(email);
     } catch (error: any) {
-      console.error('Error resetting password:', error);
-      toast({
-        title: "Error resetting password",
-        description: error.message || "Please try again.",
-        variant: "destructive",
-      });
+      // Error is already handled by the resetPasswordWithCustomEmail function
       throw error;
     }
   };

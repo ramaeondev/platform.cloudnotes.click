@@ -11,6 +11,7 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import ConfirmEmail from "./pages/ConfirmEmail";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -30,6 +31,7 @@ const App = () => {
               <Route path="/signup" element={<SignUp />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/auth/confirm" element={<ConfirmEmail />} />
               
               {/* Protected routes */}
               <Route 
