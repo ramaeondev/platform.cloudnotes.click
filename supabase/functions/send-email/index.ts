@@ -10,12 +10,12 @@ const corsHeaders = {
 // Configure SMTP client
 const smtp = new SMTPClient({
   connection: {
-    hostname: Deno.env.get("SMTP_HOST") || "smtp-relay.brevo.com",
-    port: parseInt(Deno.env.get("SMTP_PORT") || "587"),
+    hostname: Deno.env.get("SMTP_HOST"),
+    port: parseInt(Deno.env.get("SMTP_PORT")),
     tls: false,
     auth: {
-      username: Deno.env.get("SMTP_USER") || "87f9a3001@smtp-brevo.com",
-      password: Deno.env.get("SMTP_PASSWORD") || "ZjN5wPUX14sn2y6v",
+      username: Deno.env.get("SMTP_USER"),
+      password: Deno.env.get("SMTP_PASSWORD"),
     },
   },
 });

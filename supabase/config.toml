@@ -27,7 +27,5 @@ site_url = "http://localhost:3000"
 [analytics]
 enabled = false
 
-[[functions]]
-name = "send-email"
+[functions.send-email]
 verify_jwt = true
-
