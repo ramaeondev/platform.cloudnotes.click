@@ -3,8 +3,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 };
 
 // Configure SMTP client
@@ -39,7 +40,7 @@ serve(async (req) => {
     
     console.log(`Sending ${type} email to: ${to}`);
 
-    const fromEmail = Deno.env.get("EMAIL_FROM") || "noreply@cloudnotes.click";
+    const fromEmail = Deno.env.get("EMAIL_FROM");
 
     await smtp.send({
       from: fromEmail,
