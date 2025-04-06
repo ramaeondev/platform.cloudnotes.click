@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
+import { useAuth } from '@/contexts/AuthContext';
 
 const SignUp = () => {
   const [name, setName] = useState('');
@@ -12,6 +14,8 @@ const SignUp = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const { signUp } = useAuth();
+  const navigate = useNavigate();
 
   const validatePassword = () => {
     if (password !== confirmPassword) {
@@ -33,12 +37,21 @@ const SignUp = () => {
     
     setIsLoading(true);
     
-    // This will be implemented with Supabase later
-    console.log('Sign up with:', name, email, password);
-    
-    setTimeout(() => {
+    try {
+      await signUp(name, email, password);
+      toast({
+        title: "Account created!",
+        description: "Your account has been created successfully.",
+      });
+      navigate('/');
+    } catch (error) {
       setIsLoading(false);
-    }, 1000);
+      toast({
+        title: "Sign up failed",
+        description: "There was an error creating your account.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
