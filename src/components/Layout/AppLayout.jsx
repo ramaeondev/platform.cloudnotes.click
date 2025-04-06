@@ -8,10 +8,9 @@ import { mockNotes, mockCategories, mockFolders } from '@/lib/mockData';
 const AppLayout = () => {
   const [selectedNote, setSelectedNote] = useState(null);
   const [selectedFolderId, setSelectedFolderId] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
-  // Filter notes based on selected folder or date
+  // Filter notes based on selected folder
   const filteredNotes = mockNotes.filter(note => {
     // Filter out deleted notes
     if (note.isDeleted) return false;
@@ -21,13 +20,8 @@ const AppLayout = () => {
       return note.folderId === selectedFolderId;
     }
     
-    // If date is selected, filter by date
-    if (selectedDate) {
-      const noteDate = new Date(note.createdAt);
-      return noteDate.toDateString() === selectedDate.toDateString();
-    }
-    
-    return true;
+    // If no folder is selected, show notes without a folder (root level)
+    return note.folderId === null && !note.isArchived;
   });
 
   const handleNoteSelect = (noteId) => {
@@ -37,12 +31,6 @@ const AppLayout = () => {
 
   const handleFolderSelect = (folderId) => {
     setSelectedFolderId(folderId);
-    setSelectedNote(null);
-  };
-
-  const handleDateSelect = (date) => {
-    setSelectedDate(date);
-    setSelectedFolderId(null);
     setSelectedNote(null);
   };
 
@@ -58,8 +46,6 @@ const AppLayout = () => {
           folders={mockFolders}
           categories={mockCategories}
           onFolderSelect={handleFolderSelect}
-          onDateSelect={handleDateSelect}
-          selectedDate={selectedDate}
           selectedFolderId={selectedFolderId}
         />
       </div>
