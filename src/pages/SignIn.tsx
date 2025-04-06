@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,19 @@ const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Get the page they were trying to access before being redirected to login
   const from = location.state?.from?.pathname || "/";
+
+  // If user is already authenticated, redirect to home page
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,19 +31,10 @@ const SignIn = () => {
     
     try {
       await signIn(email, password);
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully signed in.",
-      });
-      // Redirect to the previous page or homepage
-      navigate(from, { replace: true });
+      // Redirect is handled by the AuthContext onAuthStateChange listener
     } catch (error) {
+      // Error is already handled by the signIn function
       setIsLoading(false);
-      toast({
-        title: "Sign in failed",
-        description: "Please check your credentials and try again.",
-        variant: "destructive",
-      });
     }
   };
 

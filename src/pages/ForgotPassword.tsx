@@ -5,36 +5,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from '@/contexts/AuthContext';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
+  const { resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // This will be implemented with Supabase later
-      console.log('Reset password for:', email);
-      
-      // Simulate successful email sending
-      setTimeout(() => {
-        setIsLoading(false);
-        setIsEmailSent(true);
-        toast({
-          title: "Reset link sent",
-          description: "If an account exists with this email, you'll receive a reset link shortly.",
-        });
-      }, 1000);
-    } catch (error) {
-      setIsLoading(false);
+      await resetPassword(email);
+      setIsEmailSent(true);
       toast({
-        title: "Something went wrong",
-        description: "Please try again later.",
-        variant: "destructive",
+        title: "Reset link sent",
+        description: "If an account exists with this email, you'll receive a reset link shortly.",
       });
+    } catch (error) {
+      // Error is already handled by the resetPassword function
+    } finally {
+      setIsLoading(false);
     }
   };
 
