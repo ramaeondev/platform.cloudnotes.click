@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,27 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// CloudNotes custom colors
+				cloudnotes: {
+					blue: {
+						DEFAULT: '#1e293b', // Deep blue
+						light: '#334155',
+						dark: '#0f172a'
+					},
+					gray: {
+						DEFAULT: '#e2e8f0',
+						light: '#f8fafc',
+						dark: '#64748b'
+					},
+					accent: {
+						red: '#ef4444',
+						green: '#10b981',
+						yellow: '#f59e0b',
+						purple: '#8b5cf6',
+						pink: '#ec4899',
+						blue: '#3b82f6'
+					}
 				}
 			},
 			borderRadius: {
@@ -84,11 +106,25 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				// CloudNotes custom animations
+				'fade-in': {
+					from: {
+						opacity: '0'
+					},
+					to: {
+						opacity: '1'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.3s ease-out'
+			},
+			fontFamily: {
+				sans: ['Inter', 'sans-serif'],
+				mono: ['JetBrains Mono', 'monospace']
 			}
 		}
 	},
