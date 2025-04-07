@@ -48,8 +48,13 @@ jobs:
         run: |
           # Create copy of index.html for common routes to handle refreshes properly
           for route in signin signup forgot-password reset-password auth/confirm terms; do
-            aws s3 cp s3://${{ secrets.S3_BUCKET }}/index.html s3://${{ secrets.S3_BUCKET }}/$route
-            aws s3 cp s3://${{ secrets.S3_BUCKET }}/index.html s3://${{ secrets.S3_BUCKET }}/$route/index.html
+            # Create necessary parent directories
+            mkdir -p /tmp/$route
+            cp ./dist/index.html /tmp/$route/index.html
+            
+            # Upload to correct S3 paths
+            aws s3 cp /tmp/$route/index.html s3://${{ secrets.S3_BUCKET }}/$route/index.html
+            aws s3 cp ./dist/index.html s3://${{ secrets.S3_BUCKET }}/$route
           done
         
       - name: Invalidate CloudFront cache
