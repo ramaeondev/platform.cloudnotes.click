@@ -3,6 +3,9 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "@/hooks/use-toast";
 
+// Site URL configuration
+const SITE_URL = "https://platform.cloudnotes.click";
+
 // Email templates
 const emailTemplates = {
   welcome: {
@@ -84,7 +87,7 @@ const useCustomAuth = () => {
             name,
             user_name: name // Add this explicitly for email template
           },
-          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+          emailRedirectTo: `${SITE_URL}/auth/confirm`,
         },
       });
 
@@ -115,7 +118,7 @@ const useCustomAuth = () => {
     try {
       // Use Supabase's built-in password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${SITE_URL}/reset-password`,
       });
 
       if (error) throw error;

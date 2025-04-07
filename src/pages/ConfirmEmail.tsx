@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 const ConfirmEmail = () => {
   const [isConfirming, setIsConfirming] = useState(true);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -28,12 +29,34 @@ const ConfirmEmail = () => {
       }
 
       try {
-        const { error } = await supabase.auth.verifyOtp({
+        // Verify the OTP and get the session
+        const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
           token_hash: token,
           type: 'email',
         });
 
-        if (error) throw error;
+        if (verifyError) throw verifyError;
+        
+        // Check if we have user email from the successful verification
+        const email = verifyData.user?.email;
+        if (email) {
+          setUserEmail(email);
+          
+          // Add confirmed user to newsletter subscribers
+          try {
+            const { error: subscribeError } = await supabase.functions.invoke('newsletter-subscribe', {
+              body: { email },
+            });
+            
+            if (subscribeError) {
+              console.error('Error subscribing to newsletter:', subscribeError);
+            } else {
+              console.log('Successfully subscribed to newsletter:', email);
+            }
+          } catch (subscribeErr) {
+            console.error('Exception when subscribing to newsletter:', subscribeErr);
+          }
+        }
         
         setIsConfirming(false);
         setIsSuccess(true);
@@ -101,6 +124,9 @@ const ConfirmEmail = () => {
                     <line x1="15" y1="9" x2="9" y2="15"></line>
                     <line x1="9" y1="9" x2="15" y2="15"></line>
                   </svg>
+                )}
+                {userEmail && isSuccess && (
+                  <p className="mt-2">Thank you for confirming your email: <strong>{userEmail}</strong></p>
                 )}
               </CardContent>
               <CardFooter className="flex justify-center">

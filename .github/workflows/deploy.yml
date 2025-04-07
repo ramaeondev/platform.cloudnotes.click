@@ -44,9 +44,16 @@ jobs:
       - name: Deploy to S3
         run: aws s3 sync ./dist s3://${{ secrets.S3_BUCKET }} --delete
         
+      - name: Create routing rules for SPA
+        run: |
+          # Create copy of index.html for common routes to handle refreshes properly
+          for route in signin signup forgot-password reset-password auth/confirm terms; do
+            aws s3 cp s3://${{ secrets.S3_BUCKET }}/index.html s3://${{ secrets.S3_BUCKET }}/$route
+            aws s3 cp s3://${{ secrets.S3_BUCKET }}/index.html s3://${{ secrets.S3_BUCKET }}/$route/index.html
+          done
+        
       - name: Invalidate CloudFront cache
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
             --paths "/*"
-

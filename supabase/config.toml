@@ -23,7 +23,7 @@ file_size_limit = "50MiB"
 [auth]
 enabled = true
 site_url = "https://platform.cloudnotes.click"
-additional_redirect_urls = ["https://cloudnotes.click"]
+additional_redirect_urls = ["https://cloudnotes.click", "https://platform.cloudnotes.click"]
 
 [analytics]
 enabled = false
@@ -33,7 +33,7 @@ verify_jwt = true
 
 [functions.newsletter-subscribe]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "supabase/functions/newsletter-subscribe/deno.json"
 entrypoint = "supabase/functions/newsletter-subscribe/index.ts"
 
