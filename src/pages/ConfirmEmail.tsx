@@ -28,8 +28,13 @@ const ConfirmEmail = () => {
       }
 
       try {
-        // This is where we would normally verify the token with Supabase
-        // For simplicity, we'll simulate a successful confirmation
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: token,
+          type: 'email',
+        });
+
+        if (error) throw error;
+        
         setIsConfirming(false);
         setIsSuccess(true);
 

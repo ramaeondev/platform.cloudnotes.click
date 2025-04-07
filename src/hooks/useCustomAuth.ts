@@ -71,67 +71,28 @@ const emailTemplates = {
 const useCustomAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
 
-  // Send custom email
-  const sendCustomEmail = async (
-    to: string, 
-    type: 'welcome' | 'reset' | 'magic_link',
-    data: { name?: string; url: string }
-  ) => {
-    try {
-      const template = emailTemplates[type];
-      const name = data.name || to.split('@')[0];
-      const html = template.html(name, data.url);
-
-      const { error } = await supabase.functions.invoke('send-email', {
-        body: {
-          to,
-          subject: template.subject,
-          html,
-          type
-        },
-      });
-
-      if (error) throw error;
-      return { success: true };
-    } catch (error) {
-      console.error(`Error sending ${type} email:`, error);
-      return { success: false, error };
-    }
-  };
-
   // Sign up with custom email
   const signUpWithCustomEmail = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // First, attempt to sign up the user with Supabase
+      // Use Supabase's built-in signup with email confirmation
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { name },
-          // Important: Set emailRedirectTo to our app URL for confirmation
           emailRedirectTo: `${window.location.origin}/auth/confirm`,
         },
       });
 
       if (error) throw error;
-
-      // If successful, get the confirmation URL from the auth response
-      const { user, session } = data;
-      
-      // Generate a confirmation URL (in a real app, this would be from Supabase)
-      // Since we're intercepting emails, we need to use the same URL format
-      const confirmationUrl = `${window.location.origin}/auth/confirm?token=${user?.confirmation_token}`;
-      
-      // Send our custom welcome email with the confirmation link
-      await sendCustomEmail(email, 'welcome', { name, url: confirmationUrl });
       
       toast({
         title: "Account created!",
         description: "Please check your email to confirm your account.",
       });
       
-      return { user, session };
+      return { user: data.user, session: data.session };
     } catch (error: any) {
       console.error('Error signing up:', error);
       toast({
@@ -149,19 +110,12 @@ const useCustomAuth = () => {
   const resetPasswordWithCustomEmail = async (email: string) => {
     setIsLoading(true);
     try {
-      // First, use Supabase's reset function to generate a recovery token
+      // Use Supabase's built-in password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) throw error;
-      
-      // In a real implementation, we would need to get the reset token from the response
-      // For this demo, we'll create a sample reset URL
-      const resetUrl = `${window.location.origin}/reset-password?token=SAMPLE_TOKEN`;
-      
-      // Send our custom password reset email
-      await sendCustomEmail(email, 'reset', { url: resetUrl });
       
       toast({
         title: "Reset link sent",
@@ -186,7 +140,6 @@ const useCustomAuth = () => {
     isLoading,
     signUpWithCustomEmail,
     resetPasswordWithCustomEmail,
-    sendCustomEmail
   };
 };
 
