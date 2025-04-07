@@ -80,7 +80,10 @@ const useCustomAuth = () => {
         email,
         password,
         options: {
-          data: { name },
+          data: { 
+            name,
+            user_name: name // Add this explicitly for email template
+          },
           emailRedirectTo: `${window.location.origin}/auth/confirm`,
         },
       });

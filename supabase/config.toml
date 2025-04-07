@@ -23,6 +23,7 @@ file_size_limit = "50MiB"
 [auth]
 enabled = true
 site_url = "https://platform.cloudnotes.click"
+additional_redirect_urls = ["https://cloudnotes.click"]
 
 [analytics]
 enabled = false
