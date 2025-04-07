@@ -23,7 +23,7 @@ file_size_limit = "50MiB"
 [auth]
 enabled = true
 site_url = "https://platform.cloudnotes.click"
-additional_redirect_urls = ["https://cloudnotes.click", "https://platform.cloudnotes.click"]
+additional_redirect_urls = ["https://cloudnotes.click", "https://platform.cloudnotes.click/auth/confirm"]
 email_template_forgot_password_life_time_seconds = 86400
 email_template_magic_link_life_time_seconds = 86400
 email_template_verification_life_time_seconds = 86400
