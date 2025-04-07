@@ -14,46 +14,49 @@ import ResetPassword from "./pages/ResetPassword";
 import ConfirmEmail from "./pages/ConfirmEmail";
 import NotFound from "./pages/NotFound";
 import TermsAndConditions from "./pages/TermsAndConditions";
+import React from "react";
+
+// Create a new QueryClient instance outside the component
+const queryClient = new QueryClient();
 
 const App = () => {
-  // Create a new QueryClient instance inside the component
-  const queryClient = new QueryClient();
-  
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/signin" element={<SignIn />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/auth/confirm" element={<ConfirmEmail />} />
-              <Route path="/terms" element={<TermsAndConditions />} />
-              
-              {/* Protected routes */}
-              <Route 
-                path="/" 
-                element={
-                  <ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Catch-all route - handle S3 SPA routing */}
-              <Route path="/signup/*" element={<Navigate to="/signup" replace />} />
-              <Route path="/signin/*" element={<Navigate to="/signin" replace />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/signin" element={<SignIn />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/auth/confirm" element={<ConfirmEmail />} />
+                <Route path="/terms" element={<TermsAndConditions />} />
+                
+                {/* Protected routes */}
+                <Route 
+                  path="/" 
+                  element={
+                    <ProtectedRoute>
+                      <Index />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                {/* Catch-all route - handle S3 SPA routing */}
+                <Route path="/signup/*" element={<Navigate to="/signup" replace />} />
+                <Route path="/signin/*" element={<Navigate to="/signin" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
   );
 };
 
