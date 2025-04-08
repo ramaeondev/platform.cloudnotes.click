@@ -27,6 +27,7 @@ const ConfirmEmail = () => {
             setUserEmail(data.session.user.email);
             setIsConfirming(false);
             setIsSuccess(true);
+            console.log('User session:', data.session);
             
             // Add confirmed user to newsletter subscribers
             if (data.session.user.email) {
@@ -38,6 +39,20 @@ const ConfirmEmail = () => {
               } catch (subscribeErr) {
                 console.error('Exception when subscribing to newsletter:', subscribeErr);
               }
+              try {
+                const { error: folderError } = await supabase.functions.invoke('create-user-root-folder', {
+                  body: { user_id: data.session.user.id },
+                });
+              
+                if (folderError) {
+                  console.error('Error creating user folder:', folderError);
+                } else {
+                  console.log('Root folder created for user:', data.session.user.id);
+                }
+              } catch (folderErr) {
+                console.error('Exception when creating user folder:', folderErr);
+              }
+              
             }
             
             toast({
@@ -79,7 +94,23 @@ const ConfirmEmail = () => {
           });
 
           if (verifyError) throw verifyError;
-          
+          const userId = verifyData.user?.id;
+          if (userId) {
+            try {
+              const { error: folderError } = await supabase.functions.invoke('create-user-root-folder', {
+                body: { user_id: userId },
+              });
+
+              if (folderError) {
+                console.error('Error creating user folder:', folderError);
+              } else {
+                console.log('Root folder created for user:', userId);
+              }
+            } catch (folderErr) {
+              console.error('Exception when creating user folder:', folderErr);
+            }
+          }
+
           // Check if we have user email from the successful verification
           const email = verifyData.user?.email;
           if (email) {
