@@ -47,11 +47,11 @@ export async function createCategory(name: string): Promise<Category> {
   
   const { data, error } = await supabase
     .from('categories')
-    .insert([{ 
+    .insert({
       name, 
       color: randomColor,
       user_id: user.id
-    }])
+    })
     .select()
     .single();
 

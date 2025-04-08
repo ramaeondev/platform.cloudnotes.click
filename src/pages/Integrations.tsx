@@ -31,7 +31,7 @@ const Integrations = () => {
         {/* Integrations content */}
         <div className="flex-1 p-6">
           <div className="max-w-2xl mx-auto">
-            {/* Development Banner */}
+            {/* Collaborator Banner */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <div className="flex items-start">
                 <div className="flex-shrink-0 pt-0.5">

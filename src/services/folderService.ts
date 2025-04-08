@@ -41,11 +41,11 @@ export async function createFolder(name: string, parentId: string | null = null)
   
   const { data, error } = await supabase
     .from('folders')
-    .insert([{ 
+    .insert({ 
       name, 
       parent_id: parentId,
       user_id: user.id
-    }])
+    })
     .select()
     .single();
 

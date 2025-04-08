@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import Sidebar from '../Sidebar/Sidebar';
 import NoteList from '../NoteList/NoteList';
 import Editor from '../Editor/Editor';
-import { mockNotes } from '@/lib/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getUserFolders } from '@/services/folderService';
+import { getUserCategories } from '@/services/categoryService';
 
 const AppLayout = () => {
   const [selectedNote, setSelectedNote] = useState(null);
@@ -45,15 +46,72 @@ const AppLayout = () => {
     enabled: !!user
   });
 
-  // Detect when profile data is loaded
+  // Fetch folders data
+  const { 
+    data: folders = [],
+    isLoading: isFoldersLoading
+  } = useQuery({
+    queryKey: ['folders'],
+    queryFn: getUserFolders,
+    enabled: !!user
+  });
+  
+  // Fetch categories data
+  const {
+    data: categories = [],
+    isLoading: isCategoriesLoading
+  } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getUserCategories,
+    enabled: !!user
+  });
+  
+  // Fetch notes data
+  const {
+    data: notes = [],
+    isLoading: isNotesLoading
+  } = useQuery({
+    queryKey: ['notes', selectedFolderId],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      let query = supabase.from('notes').select('*').eq('user_id', user.id);
+      
+      if (selectedFolderId) {
+        query = query.eq('folder_id', selectedFolderId);
+      } else {
+        query = query.is('folder_id', null);
+      }
+      
+      const { data, error } = await query.order('updated_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data.map(note => ({
+        id: note.id,
+        title: note.title,
+        content: note.content,
+        createdAt: note.created_at,
+        updatedAt: note.updated_at,
+        categoryId: note.category_id,
+        folderId: note.folder_id,
+        isArchived: note.is_archived,
+        isDeleted: note.is_deleted,
+        tags: []  // We'll implement tags later
+      }));
+    },
+    enabled: !!user
+  });
+
+  // Detect when data is loaded
   useEffect(() => {
-    if (!isProfileLoading) {
+    if (!isProfileLoading && !isFoldersLoading && !isCategoriesLoading && !isNotesLoading) {
       setIsPageLoading(false);
     }
-  }, [isProfileLoading]);
+  }, [isProfileLoading, isFoldersLoading, isCategoriesLoading, isNotesLoading]);
   
-  // Filter notes based on selected folder
-  const filteredNotes = mockNotes.filter(note => {
+  // Filter notes based on selected folder and other criteria
+  const filteredNotes = notes.filter(note => {
     // Filter out deleted notes
     if (note.isDeleted) return false;
     
@@ -67,7 +125,7 @@ const AppLayout = () => {
   });
 
   const handleNoteSelect = (noteId) => {
-    const note = mockNotes.find(n => n.id === noteId);
+    const note = notes.find(n => n.id === noteId);
     setSelectedNote(note);
   };
 
