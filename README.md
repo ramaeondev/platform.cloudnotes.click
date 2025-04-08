@@ -12,12 +12,13 @@ CloudNotes is an open-source, cloud-based note-taking application designed to he
 - **Offline Mode**: Continue working even without an internet connection
 - **Sharing Options**: Collaborate with others by sharing notes
 - **Dark Mode**: Easy on the eyes during night sessions
+- **Integrations**: (Coming Soon) Connect with Google Drive, Dropbox, and more
 
 ## Technology Stack
 
 - **Frontend**: React, TypeScript, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL, Auth, Storage)
-- **Hosting**: Vercel
+- **Hosting**: AWS
 
 ## Getting Started
 
@@ -31,8 +32,8 @@ CloudNotes is an open-source, cloud-based note-taking application designed to he
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/cloudnotes.git
-cd cloudnotes
+git clone https://github.com/ramaeondev/cloudnotes-react.git
+cd cloudnotes-react
 ```
 
 2. Install dependencies
@@ -90,8 +91,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-Project Link: [https://github.com/yourusername/cloudnotes](https://github.com/yourusername/cloudnotes)
+Project Link: [https://github.com/ramaeondev/cloudnotes-react](https://github.com/ramaeondev/cloudnotes-react)
 
 ---
 
 Made with ❤️ by the CloudNotes Team
+rama@cloudnotes.click
