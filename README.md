@@ -1,73 +1,97 @@
 
 # CloudNotes
 
-## Overview
-
-CloudNotes is a modern cloud-based note-taking application designed for simplicity and productivity. It allows users to create, organize, and share notes across devices with a clean and intuitive interface.
+CloudNotes is an open-source, cloud-based note-taking application designed to help users organize their thoughts, ideas, and information securely and efficiently.
 
 ## Features
 
-- **Cloud Synchronization**: Access your notes from anywhere, on any device
-- **Folder Organization**: Organize notes in hierarchical folders
-- **Categories & Tags**: Easily categorize and find your notes
-- **Rich Text Editor**: Format your notes with a powerful yet simple editor
-- **Collaboration**: (Coming Soon) Share and collaborate on notes with others
-- **Integrations**: (Coming Soon) Connect with Google Drive, Dropbox, and more
+- **Rich Text Editing**: Full markdown support with real-time preview
+- **Organizational Tools**: Folders, categories, and tags to keep your notes organized
+- **Secure Storage**: All notes are encrypted and stored securely in the cloud
+- **Cross-Platform**: Access your notes from any device with a web browser
+- **Offline Mode**: Continue working even without an internet connection
+- **Sharing Options**: Collaborate with others by sharing notes
+- **Dark Mode**: Easy on the eyes during night sessions
 
 ## Technology Stack
 
-- **Frontend**: React, TypeScript, TailwindCSS
-- **UI Components**: shadcn/ui
-- **State Management**: React Query
-- **Backend**: Supabase (PostgreSQL, Authentication, Storage)
-- **Deployment**: Automated CI/CD pipeline
+- **Frontend**: React, TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Auth, Storage)
+- **Hosting**: Vercel
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Node.js (v18 or higher)
+- npm or Yarn package manager
+- Supabase account and project
 
 ### Installation
 
-```sh
-# Clone the repository
-git clone https://github.com/your-username/cloudnotes.git
-
-# Navigate to project directory
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/cloudnotes.git
 cd cloudnotes
+```
 
-# Install dependencies
+2. Install dependencies
+```bash
 npm install
+# or
+yarn install
+```
 
-# Start development server
+3. Create a `.env` file in the root directory with your Supabase credentials
+```
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+4. Start the development server
+```bash
 npm run dev
+# or
+yarn dev
 ```
 
 ## Contributing
 
-CloudNotes is an open-source project and we welcome contributions from the community. We're looking for passionate individuals to help build the future of note-taking!
+CloudNotes is looking for passionate individuals to collaborate on this open-source project! We welcome contributions of all kinds - whether you're fixing bugs, improving documentation, or proposing new features.
 
-### Ways to Contribute
-
-1. **Code**: Implement new features or fix bugs
-2. **Design**: Improve the user interface and experience
-3. **Documentation**: Help improve or translate documentation
-4. **Testing**: Report bugs or help with quality assurance
-5. **Ideas**: Suggest new features or improvements
-
-### Development Workflow
+### How to Contribute
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add some amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+Please read our [Contributing Guide](CONTRIBUTING.md) for more details.
+
+## Roadmap
+
+- Mobile application (React Native)
+- Offline-first architecture
+- End-to-end encryption
+- Advanced collaboration features
+- AI-powered note suggestions
+- Templates system
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [Supabase](https://supabase.io/) for the amazing backend services
+- [shadcn/ui](https://ui.shadcn.com/) for the beautiful UI components
+- All our amazing contributors and supporters
 
 ## Contact
 
-For questions or feedback, please reach out to us at contact@cloudnotes.example.com
+Project Link: [https://github.com/yourusername/cloudnotes](https://github.com/yourusername/cloudnotes)
+
+---
+
+Made with ❤️ by the CloudNotes Team

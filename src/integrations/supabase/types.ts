@@ -113,6 +113,60 @@ export type Database = {
         }
         Relationships: []
       }
+      notes: {
+        Row: {
+          category_id: string | null
+          content: string
+          created_at: string
+          folder_id: string | null
+          id: string
+          is_archived: boolean
+          is_deleted: boolean
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          content: string
+          created_at?: string
+          folder_id?: string | null
+          id?: string
+          is_archived?: boolean
+          is_deleted?: boolean
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          content?: string
+          created_at?: string
+          folder_id?: string | null
+          id?: string
+          is_archived?: boolean
+          is_deleted?: boolean
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

@@ -19,9 +19,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getUserFolders } from '@/services/folderService';
 import { getUserCategories } from '@/services/categoryService';
+import { getNotesByFolder } from '@/services/noteService';
+import { Note } from '@/lib/types';
 
 const AppLayout = () => {
-  const [selectedNote, setSelectedNote] = useState(null);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showDevBanner, setShowDevBanner] = useState(true);
@@ -72,34 +74,7 @@ const AppLayout = () => {
     isLoading: isNotesLoading
   } = useQuery({
     queryKey: ['notes', selectedFolderId],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      let query = supabase.from('notes').select('*').eq('user_id', user.id);
-      
-      if (selectedFolderId) {
-        query = query.eq('folder_id', selectedFolderId);
-      } else {
-        query = query.is('folder_id', null);
-      }
-      
-      const { data, error } = await query.order('updated_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      return data.map(note => ({
-        id: note.id,
-        title: note.title,
-        content: note.content,
-        createdAt: note.created_at,
-        updatedAt: note.updated_at,
-        categoryId: note.category_id,
-        folderId: note.folder_id,
-        isArchived: note.is_archived,
-        isDeleted: note.is_deleted,
-        tags: []  // We'll implement tags later
-      }));
-    },
+    queryFn: () => getNotesByFolder(selectedFolderId),
     enabled: !!user
   });
 
@@ -124,12 +99,12 @@ const AppLayout = () => {
     return note.folderId === null && !note.isArchived;
   });
 
-  const handleNoteSelect = (noteId) => {
+  const handleNoteSelect = (noteId: string) => {
     const note = notes.find(n => n.id === noteId);
-    setSelectedNote(note);
+    setSelectedNote(note || null);
   };
 
-  const handleFolderSelect = (folderId) => {
+  const handleFolderSelect = (folderId: string | null) => {
     setSelectedFolderId(folderId);
     setSelectedNote(null);
   };
