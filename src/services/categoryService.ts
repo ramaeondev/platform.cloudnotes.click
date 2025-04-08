@@ -1,9 +1,9 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Category } from "@/lib/types";
+import { Category, CategoryColor } from "@/lib/types";
 
 // Array of colors to randomly select from when creating a new category
-const categoryColors = ["red", "green", "blue", "yellow", "purple", "pink"];
+const categoryColors: CategoryColor[] = ["red", "green", "blue", "yellow", "purple", "pink"];
 
 export async function getUserCategories(): Promise<Category[]> {
   const { data, error } = await supabase
@@ -16,7 +16,22 @@ export async function getUserCategories(): Promise<Category[]> {
     throw error;
   }
 
-  return data as Category[];
+  // Transform the data to match our Category type
+  const categories = data as unknown as Array<{
+    id: string;
+    name: string;
+    color: string;
+    user_id: string;
+    created_at: string;
+    updated_at: string;
+  }>;
+
+  // Map the DB schema fields to our application model
+  return categories.map(category => ({
+    id: category.id,
+    name: category.name,
+    color: category.color as CategoryColor,
+  })) as Category[];
 }
 
 export async function createCategory(name: string): Promise<Category> {
@@ -25,7 +40,10 @@ export async function createCategory(name: string): Promise<Category> {
   
   const { data, error } = await supabase
     .from('categories')
-    .insert([{ name, color: randomColor }])
+    .insert([{ 
+      name, 
+      color: randomColor 
+    }])
     .select()
     .single();
 
@@ -34,13 +52,31 @@ export async function createCategory(name: string): Promise<Category> {
     throw error;
   }
 
-  return data as unknown as Category;
+  // Transform the data to match our Category type
+  const category = data as unknown as {
+    id: string;
+    name: string;
+    color: string;
+    user_id: string;
+    created_at: string;
+    updated_at: string;
+  };
+
+  return {
+    id: category.id,
+    name: category.name,
+    color: category.color as CategoryColor,
+  } as Category;
 }
 
-export async function updateCategory(id: string, name: string, color: string): Promise<Category> {
+export async function updateCategory(id: string, name: string, color: CategoryColor): Promise<Category> {
   const { data, error } = await supabase
     .from('categories')
-    .update({ name, color, updated_at: new Date().toISOString() })
+    .update({ 
+      name, 
+      color, 
+      updated_at: new Date().toISOString() 
+    })
     .eq('id', id)
     .select()
     .single();
@@ -50,7 +86,21 @@ export async function updateCategory(id: string, name: string, color: string): P
     throw error;
   }
 
-  return data as unknown as Category;
+  // Transform the data to match our Category type
+  const category = data as unknown as {
+    id: string;
+    name: string;
+    color: string;
+    user_id: string;
+    created_at: string;
+    updated_at: string;
+  };
+
+  return {
+    id: category.id,
+    name: category.name,
+    color: category.color as CategoryColor,
+  } as Category;
 }
 
 export async function deleteCategory(id: string): Promise<void> {

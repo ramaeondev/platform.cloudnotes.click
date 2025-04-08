@@ -13,13 +13,31 @@ export async function getUserFolders(): Promise<Folder[]> {
     throw error;
   }
 
-  return data as Folder[];
+  // Transform the data to match our Folder type
+  const folders = data as unknown as Array<{
+    id: string;
+    name: string;
+    parent_id: string | null;
+    user_id: string;
+    created_at: string;
+    updated_at: string;
+  }>;
+
+  // Map the DB schema fields to our application model
+  return folders.map(folder => ({
+    id: folder.id,
+    name: folder.name,
+    parentId: folder.parent_id,
+  })) as Folder[];
 }
 
 export async function createFolder(name: string, parentId: string | null = null): Promise<Folder> {
   const { data, error } = await supabase
     .from('folders')
-    .insert([{ name, parent_id: parentId }])
+    .insert([{ 
+      name, 
+      parent_id: parentId 
+    }])
     .select()
     .single();
 
@@ -28,13 +46,30 @@ export async function createFolder(name: string, parentId: string | null = null)
     throw error;
   }
 
-  return data as unknown as Folder;
+  // Transform the data to match our Folder type
+  const folder = data as unknown as {
+    id: string;
+    name: string;
+    parent_id: string | null;
+    user_id: string;
+    created_at: string;
+    updated_at: string;
+  };
+
+  return {
+    id: folder.id,
+    name: folder.name,
+    parentId: folder.parent_id,
+  } as Folder;
 }
 
 export async function updateFolder(id: string, name: string): Promise<Folder> {
   const { data, error } = await supabase
     .from('folders')
-    .update({ name, updated_at: new Date().toISOString() })
+    .update({ 
+      name, 
+      updated_at: new Date().toISOString() 
+    })
     .eq('id', id)
     .select()
     .single();
@@ -44,7 +79,21 @@ export async function updateFolder(id: string, name: string): Promise<Folder> {
     throw error;
   }
 
-  return data as unknown as Folder;
+  // Transform the data to match our Folder type
+  const folder = data as unknown as {
+    id: string;
+    name: string;
+    parent_id: string | null;
+    user_id: string;
+    created_at: string;
+    updated_at: string;
+  };
+
+  return {
+    id: folder.id,
+    name: folder.name,
+    parentId: folder.parent_id,
+  } as Folder;
 }
 
 export async function deleteFolder(id: string): Promise<void> {
