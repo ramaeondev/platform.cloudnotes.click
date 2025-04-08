@@ -17,7 +17,7 @@ export async function getUserCategories(): Promise<Category[]> {
   }
 
   // Transform the data to match our Category type
-  const categories = data as unknown as Array<{
+  const categories = data as Array<{
     id: string;
     name: string;
     color: string;
@@ -35,6 +35,13 @@ export async function getUserCategories(): Promise<Category[]> {
 }
 
 export async function createCategory(name: string): Promise<Category> {
+  // Get the current user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  
   // Randomly select a color from the array
   const randomColor = categoryColors[Math.floor(Math.random() * categoryColors.length)];
   
@@ -42,7 +49,8 @@ export async function createCategory(name: string): Promise<Category> {
     .from('categories')
     .insert([{ 
       name, 
-      color: randomColor 
+      color: randomColor,
+      user_id: user.id
     }])
     .select()
     .single();
@@ -53,7 +61,7 @@ export async function createCategory(name: string): Promise<Category> {
   }
 
   // Transform the data to match our Category type
-  const category = data as unknown as {
+  const category = data as {
     id: string;
     name: string;
     color: string;
@@ -70,6 +78,13 @@ export async function createCategory(name: string): Promise<Category> {
 }
 
 export async function updateCategory(id: string, name: string, color: CategoryColor): Promise<Category> {
+  // Get the current user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  
   const { data, error } = await supabase
     .from('categories')
     .update({ 
@@ -78,6 +93,7 @@ export async function updateCategory(id: string, name: string, color: CategoryCo
       updated_at: new Date().toISOString() 
     })
     .eq('id', id)
+    .eq('user_id', user.id)
     .select()
     .single();
 
@@ -87,7 +103,7 @@ export async function updateCategory(id: string, name: string, color: CategoryCo
   }
 
   // Transform the data to match our Category type
-  const category = data as unknown as {
+  const category = data as {
     id: string;
     name: string;
     color: string;
@@ -104,10 +120,18 @@ export async function updateCategory(id: string, name: string, color: CategoryCo
 }
 
 export async function deleteCategory(id: string): Promise<void> {
+  // Get the current user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  
   const { error } = await supabase
     .from('categories')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) {
     console.error('Error deleting category:', error);

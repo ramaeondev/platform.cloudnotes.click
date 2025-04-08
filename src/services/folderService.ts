@@ -14,7 +14,7 @@ export async function getUserFolders(): Promise<Folder[]> {
   }
 
   // Transform the data to match our Folder type
-  const folders = data as unknown as Array<{
+  const folders = data as Array<{
     id: string;
     name: string;
     parent_id: string | null;
@@ -32,11 +32,19 @@ export async function getUserFolders(): Promise<Folder[]> {
 }
 
 export async function createFolder(name: string, parentId: string | null = null): Promise<Folder> {
+  // Get the current user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  
   const { data, error } = await supabase
     .from('folders')
     .insert([{ 
       name, 
-      parent_id: parentId 
+      parent_id: parentId,
+      user_id: user.id
     }])
     .select()
     .single();
@@ -47,7 +55,7 @@ export async function createFolder(name: string, parentId: string | null = null)
   }
 
   // Transform the data to match our Folder type
-  const folder = data as unknown as {
+  const folder = data as {
     id: string;
     name: string;
     parent_id: string | null;
@@ -64,6 +72,13 @@ export async function createFolder(name: string, parentId: string | null = null)
 }
 
 export async function updateFolder(id: string, name: string): Promise<Folder> {
+  // Get the current user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  
   const { data, error } = await supabase
     .from('folders')
     .update({ 
@@ -71,6 +86,7 @@ export async function updateFolder(id: string, name: string): Promise<Folder> {
       updated_at: new Date().toISOString() 
     })
     .eq('id', id)
+    .eq('user_id', user.id)
     .select()
     .single();
 
@@ -80,7 +96,7 @@ export async function updateFolder(id: string, name: string): Promise<Folder> {
   }
 
   // Transform the data to match our Folder type
-  const folder = data as unknown as {
+  const folder = data as {
     id: string;
     name: string;
     parent_id: string | null;
@@ -97,10 +113,18 @@ export async function updateFolder(id: string, name: string): Promise<Folder> {
 }
 
 export async function deleteFolder(id: string): Promise<void> {
+  // Get the current user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  
   const { error } = await supabase
     .from('folders')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) {
     console.error('Error deleting folder:', error);
