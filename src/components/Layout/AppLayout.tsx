@@ -9,8 +9,6 @@ import { mockNotes } from '@/lib/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { getUserFolders } from '@/services/folderService';
-import { getUserCategories } from '@/services/categoryService';
 import { PageLoader } from '@/components/ui/loader';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
@@ -47,23 +45,12 @@ const AppLayout = () => {
     enabled: !!user
   });
 
-  // Fetch folders and categories data
-  const { data: folders = [], isLoading: isFoldersLoading } = useQuery({
-    queryKey: ['folders'],
-    queryFn: getUserFolders
-  });
-  
-  const { data: categories = [], isLoading: isCategoriesLoading } = useQuery({
-    queryKey: ['categories'],
-    queryFn: getUserCategories
-  });
-
-  // Detect when all data is loaded
+  // Detect when profile data is loaded
   useEffect(() => {
-    if (!isProfileLoading && !isFoldersLoading && !isCategoriesLoading) {
+    if (!isProfileLoading) {
       setIsPageLoading(false);
     }
-  }, [isProfileLoading, isFoldersLoading, isCategoriesLoading]);
+  }, [isProfileLoading]);
   
   // Filter notes based on selected folder
   const filteredNotes = mockNotes.filter(note => {
@@ -116,6 +103,10 @@ const AppLayout = () => {
 
   const handleNavigateToIntegrations = () => {
     navigate('/integrations');
+  };
+  
+  const handleNavigateToAbout = () => {
+    navigate('/about');
   };
 
   // Get user's first name or first initial
@@ -236,6 +227,14 @@ const AppLayout = () => {
                   </svg>
                   <span>Integrations</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleNavigateToAbout}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 16v-4"/>
+                    <path d="M12 8h.01"/>
+                  </svg>
+                  <span>About</span>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-500 focus:text-red-500">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
@@ -263,7 +262,7 @@ const AppLayout = () => {
               </div>
               <div className="ml-3 flex-1 md:flex md:justify-between">
                 <p className="text-sm text-blue-700">
-                  CloudNotes is currently in development. Many features are coming soon! We'll release a newsletter when the beta version is available.
+                  CloudNotes is looking for passionate individuals to collaborate on this open-source project!
                 </p>
                 <p className="mt-3 text-sm md:mt-0 md:ml-6">
                   <button 
@@ -283,7 +282,6 @@ const AppLayout = () => {
           <div className="w-72 border-r overflow-y-auto">
             <NoteList 
               notes={filteredNotes}
-              categories={categories}
               onNoteSelect={handleNoteSelect}
               selectedNoteId={selectedNote?.id}
             />
@@ -291,7 +289,6 @@ const AppLayout = () => {
           <div className="flex-1 overflow-y-auto">
             <Editor 
               note={selectedNote}
-              categories={categories}
             />
           </div>
         </div>

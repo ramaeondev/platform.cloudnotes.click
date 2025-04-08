@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/toast";
 
 const Integrations = () => {
   const navigate = useNavigate();
@@ -41,9 +41,9 @@ const Integrations = () => {
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-blue-800">Development in Progress</h3>
+                  <h3 className="text-sm font-medium text-blue-800">Looking for Collaborators</h3>
                   <div className="mt-2 text-sm text-blue-700">
-                    <p>Cloud integrations are currently in development phase. These features will allow you to import notes from your existing storage providers.</p>
+                    <p>CloudNotes is an open-source project looking for passionate individuals to help build the future of note-taking. Join our community of developers, designers, and creators!</p>
                   </div>
                 </div>
               </div>
