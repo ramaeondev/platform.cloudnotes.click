@@ -1,66 +1,54 @@
 // supabase/functions/create-newuser-folder/index.ts
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+// Try this import instead
+import { S3Client, PutObjectCommand, ListObjectsV2Command } 
+  from "https://deno.land/x/aws_sdk@v3.32.0-1/client-s3/mod.ts";
+import { withCors } from "../_shared/cors.ts";
+// Near the beginning of your function, add:
+console.log("Environment variables:", {
+  bucket: Deno.env.get("S3_BUCKET") || "NULL",
+  region: Deno.env.get("AWS_REGION") || "NULL",
+  hasAccessKey: !!Deno.env.get("AWS_ACCESS_KEY_ID"),
+  hasSecretKey: !!Deno.env.get("AWS_SECRET_ACCESS_KEY")
+});
 
-import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
-import {
-  S3Client,
-  PutObjectCommand,
-  ListObjectsV2Command
-} from "https://esm.sh/@aws-sdk/client-s3@3.418.0";
-
-interface RequestBody {
-  uuid: string;
-}
-
-serve(async (req: Request) => {
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-    });
-  }
-
+serve(withCors(async (req) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { 
+        status: 405,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
   }
 
   try {
-    const { uuid } = await req.json() as RequestBody;
+    const body = await req.json();
+    const uuid = body?.uuid;
 
     if (!uuid) {
-      return new Response(JSON.stringify({ error: "UUID is required" }), {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      });
+      return new Response(
+        JSON.stringify({ error: "UUID is required" }),
+        { 
+          status: 400,
+          headers: { "Content-Type": "application/json" }
+        }
+      );
     }
 
-    const bucket = Deno.env.get("S3_BUCKET")!;
-    const region = Deno.env.get("AWS_REGION")!;
-    const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID")!;
-    const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY")!;
+    const bucket = Deno.env.get("S3_BUCKET");
+    const region = Deno.env.get("AWS_REGION");
+    const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
+    const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
 
+    // Check for required environment variables
     if (!bucket || !region || !accessKeyId || !secretAccessKey) {
       return new Response(
         JSON.stringify({ error: "Missing required environment variables" }),
         {
           status: 500,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-          },
+          headers: { "Content-Type": "application/json" }
         }
       );
     }
@@ -89,10 +77,7 @@ serve(async (req: Request) => {
         JSON.stringify({ message: "Folder already exists", folder: folderKey }),
         {
           status: 200,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-          },
+          headers: { "Content-Type": "application/json" }
         }
       );
     }
@@ -110,10 +95,7 @@ serve(async (req: Request) => {
       JSON.stringify({ success: true, message: "Folder created", folder: folderKey }),
       {
         status: 201,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
+        headers: { "Content-Type": "application/json" }
       }
     );
   } catch (error) {
@@ -123,11 +105,8 @@ serve(async (req: Request) => {
       JSON.stringify({ error: "Failed to create folder", details: error.message }),
       {
         status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
+        headers: { "Content-Type": "application/json" }
       }
     );
   }
-});
+}));
