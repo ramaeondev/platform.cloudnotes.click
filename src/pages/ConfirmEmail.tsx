@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -14,69 +15,113 @@ const ConfirmEmail = () => {
 
   useEffect(() => {
     const confirmEmail = async () => {
-      const searchParams = new URLSearchParams(location.search);
-      const token = searchParams.get('token');
-      
-      if (!token) {
-        toast({
-          title: "Invalid confirmation link",
-          description: "The confirmation link is invalid or has expired.",
-          variant: "destructive",
-        });
-        setIsConfirming(false);
-        return;
-      }
-
-      try {
-        // Verify the OTP and get the session
-        const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
-          token_hash: token,
-          type: 'email',
-        });
-
-        if (verifyError) throw verifyError;
-        
-        // Check if we have user email from the successful verification
-        const email = verifyData.user?.email;
-        if (email) {
-          setUserEmail(email);
+      // Check if the URL contains a hash which indicates successful auth redirect
+      if (location.hash) {
+        try {
+          // The redirect from Supabase already handled the verification
+          const { data, error } = await supabase.auth.getSession();
           
-          // Add confirmed user to newsletter subscribers
-          try {
-            const { error: subscribeError } = await supabase.functions.invoke('newsletter-subscribe', {
-              body: { email },
-            });
+          if (error) throw error;
+          
+          if (data?.session?.user) {
+            setUserEmail(data.session.user.email);
+            setIsConfirming(false);
+            setIsSuccess(true);
             
-            if (subscribeError) {
-              console.error('Error subscribing to newsletter:', subscribeError);
-            } else {
-              console.log('Successfully subscribed to newsletter:', email);
+            // Add confirmed user to newsletter subscribers
+            if (data.session.user.email) {
+              try {
+                await supabase.functions.invoke('newsletter-subscribe', {
+                  body: { email: data.session.user.email },
+                });
+                console.log('Successfully subscribed to newsletter:', data.session.user.email);
+              } catch (subscribeErr) {
+                console.error('Exception when subscribing to newsletter:', subscribeErr);
+              }
             }
-          } catch (subscribeErr) {
-            console.error('Exception when subscribing to newsletter:', subscribeErr);
+            
+            toast({
+              title: "Email confirmed",
+              description: "Your email has been successfully verified.",
+            });
+          } else {
+            setIsConfirming(false);
+            throw new Error("No user session found");
           }
+        } catch (error: any) {
+          console.error('Error confirming email:', error);
+          setIsConfirming(false);
+          toast({
+            title: "Confirmation failed",
+            description: error.message || "There was an error confirming your email.",
+            variant: "destructive",
+          });
         }
+      } else {
+        const searchParams = new URLSearchParams(location.search);
+        const token = searchParams.get('token');
         
-        setIsConfirming(false);
-        setIsSuccess(true);
+        if (!token) {
+          toast({
+            title: "Invalid confirmation link",
+            description: "The confirmation link is invalid or has expired.",
+            variant: "destructive",
+          });
+          setIsConfirming(false);
+          return;
+        }
 
-        toast({
-          title: "Email confirmed",
-          description: "Your email has been successfully verified.",
-        });
-      } catch (error: any) {
-        console.error('Error confirming email:', error);
-        toast({
-          title: "Confirmation failed",
-          description: error.message || "There was an error confirming your email.",
-          variant: "destructive",
-        });
-        setIsConfirming(false);
+        try {
+          // Verify the OTP and get the session
+          const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: 'email',
+          });
+
+          if (verifyError) throw verifyError;
+          
+          // Check if we have user email from the successful verification
+          const email = verifyData.user?.email;
+          if (email) {
+            setUserEmail(email);
+            
+            // Add confirmed user to newsletter subscribers
+            try {
+              const { error: subscribeError } = await supabase.functions.invoke('newsletter-subscribe', {
+                body: { email },
+              });
+              
+              if (subscribeError) {
+                console.error('Error subscribing to newsletter:', subscribeError);
+              } else {
+                console.log('Successfully subscribed to newsletter:', email);
+              }
+            } catch (subscribeErr) {
+              console.error('Exception when subscribing to newsletter:', subscribeErr);
+            }
+          }
+          
+          setIsConfirming(false);
+          setIsSuccess(true);
+
+          toast({
+            title: "Email confirmed",
+            description: "Your email has been successfully verified.",
+          });
+        } catch (error: any) {
+          console.error('Error confirming email:', error);
+          toast({
+            title: "Confirmation failed",
+            description: error.message || "There was an error confirming your email.",
+            variant: "destructive",
+          });
+          setIsConfirming(false);
+        }
       }
     };
 
     confirmEmail();
-  }, [location.search]);
+  }, [location.search, location.hash]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-cloudnotes-blue-light p-4">
