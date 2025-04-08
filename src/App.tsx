@@ -13,6 +13,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ConfirmEmail from "./pages/ConfirmEmail";
 import Profile from "./pages/Profile";
+import Integrations from "./pages/Integrations";
 import NotFound from "./pages/NotFound";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import React from "react";
@@ -55,11 +56,20 @@ const App = () => {
                     </ProtectedRoute>
                   } 
                 />
+                <Route 
+                  path="/integrations" 
+                  element={
+                    <ProtectedRoute>
+                      <Integrations />
+                    </ProtectedRoute>
+                  } 
+                />
                 
                 {/* Catch-all route - handle S3 SPA routing */}
                 <Route path="/signup/*" element={<Navigate to="/signup" replace />} />
                 <Route path="/signin/*" element={<Navigate to="/signin" replace />} />
                 <Route path="/profile/*" element={<Navigate to="/profile" replace />} />
+                <Route path="/integrations/*" element={<Navigate to="/integrations" replace />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 const Profile = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -59,6 +61,9 @@ const Profile = () => {
         .eq('id', user.id);
         
       if (error) throw error;
+      
+      // Invalidate the profile query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
       
       toast({
         title: "Profile Updated",
@@ -177,38 +182,6 @@ const Profile = () => {
                   </Button>
                 </form>
               </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Cloud Integrations</CardTitle>
-                <CardDescription>Connect your cloud storage providers</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {["Google Drive", "OneDrive", "Dropbox", "Box"].map((provider) => (
-                  <div key={provider} className="flex items-center justify-between p-3 border rounded-md">
-                    <div className="flex items-center">
-                      <div className="mr-3 bg-gray-100 p-2 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
-                          <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium">{provider}</p>
-                        <p className="text-sm text-muted-foreground">Coming Soon</p>
-                      </div>
-                    </div>
-                    <Button variant="outline" disabled>
-                      Connect
-                    </Button>
-                  </div>
-                ))}
-              </CardContent>
-              <CardFooter className="border-t pt-6 flex flex-col items-start">
-                <p className="mb-4 text-sm text-muted-foreground">
-                  Cloud integrations will allow you to import notes from your existing storage providers. This feature is currently under development.
-                </p>
-              </CardFooter>
             </Card>
 
             <Card>
