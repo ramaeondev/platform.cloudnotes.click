@@ -14,6 +14,7 @@ export type Database = {
           color: string
           created_at: string
           id: string
+          is_system: boolean | null
           name: string
           updated_at: string
           user_id: string
@@ -22,6 +23,7 @@ export type Database = {
           color: string
           created_at?: string
           id?: string
+          is_system?: boolean | null
           name: string
           updated_at?: string
           user_id: string
@@ -30,6 +32,7 @@ export type Database = {
           color?: string
           created_at?: string
           id?: string
+          is_system?: boolean | null
           name?: string
           updated_at?: string
           user_id?: string
@@ -40,6 +43,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_system: boolean | null
           name: string
           parent_id: string | null
           updated_at: string
@@ -48,6 +52,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_system?: boolean | null
           name: string
           parent_id?: string | null
           updated_at?: string
@@ -56,6 +61,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_system?: boolean | null
           name?: string
           parent_id?: string | null
           updated_at?: string

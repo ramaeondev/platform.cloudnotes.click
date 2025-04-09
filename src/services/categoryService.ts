@@ -32,7 +32,7 @@ export async function getUserCategories(): Promise<Category[]> {
     id: category.id,
     name: category.name,
     color: category.color as CategoryColor,
-    isSystem: category.is_system || category.name === 'Default', // Handle both new and old data
+    isSystem: category.is_system || false, // Handle both new and old data
   })) as Category[];
 }
 
@@ -78,7 +78,7 @@ export async function createCategory(name: string): Promise<Category> {
     id: category.id,
     name: category.name,
     color: category.color as CategoryColor,
-    isSystem: category.is_system,
+    isSystem: category.is_system || false,
   } as Category;
 }
 
@@ -91,13 +91,18 @@ export async function updateCategory(id: string, name: string, color: CategoryCo
   }
   
   // First check if the category is a system category
-  const { data: categoryData } = await supabase
+  const { data: categoryData, error: fetchError } = await supabase
     .from('categories')
     .select('is_system')
     .eq('id', id)
     .single();
 
-  if (categoryData?.is_system) {
+  if (fetchError) {
+    console.error('Error fetching category:', fetchError);
+    throw fetchError;
+  }
+
+  if (categoryData && categoryData.is_system) {
     throw new Error('System categories cannot be modified');
   }
   
@@ -133,7 +138,7 @@ export async function updateCategory(id: string, name: string, color: CategoryCo
     id: category.id,
     name: category.name,
     color: category.color as CategoryColor,
-    isSystem: category.is_system,
+    isSystem: category.is_system || false,
   } as Category;
 }
 
@@ -146,13 +151,18 @@ export async function deleteCategory(id: string): Promise<void> {
   }
   
   // First check if the category is a system category
-  const { data: categoryData } = await supabase
+  const { data: categoryData, error: fetchError } = await supabase
     .from('categories')
     .select('is_system')
     .eq('id', id)
     .single();
 
-  if (categoryData?.is_system) {
+  if (fetchError) {
+    console.error('Error fetching category:', fetchError);
+    throw fetchError;
+  }
+
+  if (categoryData && categoryData.is_system) {
     throw new Error('System categories cannot be deleted');
   }
   

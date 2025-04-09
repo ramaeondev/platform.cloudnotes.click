@@ -29,7 +29,7 @@ export async function getUserFolders(): Promise<Folder[]> {
     id: folder.id,
     name: folder.name,
     parentId: folder.parent_id,
-    isSystem: folder.is_system || folder.name === 'Root', // Handle both new and old data
+    isSystem: folder.is_system || false, // Handle both new and old data
   })) as Folder[];
 }
 
@@ -72,7 +72,7 @@ export async function createFolder(name: string, parentId: string | null = null)
     id: folder.id,
     name: folder.name,
     parentId: folder.parent_id,
-    isSystem: folder.is_system,
+    isSystem: folder.is_system || false,
   } as Folder;
 }
 
@@ -85,13 +85,18 @@ export async function updateFolder(id: string, name: string): Promise<Folder> {
   }
 
   // First check if the folder is a system folder
-  const { data: folderData } = await supabase
+  const { data: folderData, error: fetchError } = await supabase
     .from('folders')
     .select('is_system')
     .eq('id', id)
     .single();
 
-  if (folderData?.is_system) {
+  if (fetchError) {
+    console.error('Error fetching folder:', fetchError);
+    throw fetchError;
+  }
+
+  if (folderData && folderData.is_system) {
     throw new Error('System folders cannot be modified');
   }
   
@@ -126,7 +131,7 @@ export async function updateFolder(id: string, name: string): Promise<Folder> {
     id: folder.id,
     name: folder.name,
     parentId: folder.parent_id,
-    isSystem: folder.is_system,
+    isSystem: folder.is_system || false,
   } as Folder;
 }
 
@@ -139,13 +144,18 @@ export async function deleteFolder(id: string): Promise<void> {
   }
 
   // First check if the folder is a system folder
-  const { data: folderData } = await supabase
+  const { data: folderData, error: fetchError } = await supabase
     .from('folders')
     .select('is_system')
     .eq('id', id)
     .single();
 
-  if (folderData?.is_system) {
+  if (fetchError) {
+    console.error('Error fetching folder:', fetchError);
+    throw fetchError;
+  }
+
+  if (folderData && folderData.is_system) {
     throw new Error('System folders cannot be deleted');
   }
   
