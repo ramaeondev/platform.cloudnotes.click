@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from '../Sidebar/Sidebar';
 import NoteList from '../NoteList/NoteList';
 import Editor from '../Editor/Editor';
-import { mockNotes, mockCategories, mockFolders } from '@/lib/mockData';
+import { mockNotes } from '@/lib/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -72,6 +72,10 @@ const AppLayout = () => {
   const handleNavigateToProfile = () => {
     navigate('/profile');
   };
+  
+  const handleNavigateToIntegrations = () => {
+    navigate('/integrations');
+  };
 
   // Get user's first name or first initial
   const getUserDisplay = () => {
@@ -112,8 +116,6 @@ const AppLayout = () => {
       {/* Sidebar */}
       <div className={`${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden`}>
         <Sidebar 
-          folders={mockFolders}
-          categories={mockCategories}
           onFolderSelect={handleFolderSelect}
           selectedFolderId={selectedFolderId}
         />
@@ -170,12 +172,11 @@ const AppLayout = () => {
                   </svg>
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleNavigateToIntegrations}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
                   </svg>
-                  <span>Settings</span>
+                  <span>Integrations</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-500 focus:text-red-500">
@@ -224,7 +225,6 @@ const AppLayout = () => {
           <div className="w-72 border-r overflow-y-auto">
             <NoteList 
               notes={filteredNotes}
-              categories={mockCategories}
               onNoteSelect={handleNoteSelect}
               selectedNoteId={selectedNote?.id}
             />
@@ -232,7 +232,6 @@ const AppLayout = () => {
           <div className="flex-1 overflow-y-auto">
             <Editor 
               note={selectedNote}
-              categories={mockCategories}
             />
           </div>
         </div>

@@ -19,12 +19,18 @@ BEGIN
   INSERT INTO public.categories (name, color, user_id)
   VALUES ('Personal', 'blue', new.id);
 
+  -- Add user to newsletter subscribers if they don't already exist
+  INSERT INTO public.newsletter_subscribers (email)
+  VALUES (new.email)
+  ON CONFLICT (email) 
+  DO UPDATE SET subscribed_at = now(), unsubscribed_at = NULL;
+
   -- Call the edge function to create a folder in S3
   PERFORM
     net.http_post(
-      url := 'https://gyyhnbzekafnvxflhlni.functions.supabase.co/create-newuser-folder',
+      url := 'https://' || current_setting('supabase_functions_endpoint') || '/create-newuser-folder',
       body := json_build_object('uuid', new.id),
-      headers := '{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('request.headers')::json->>'apikey' || '"}'
+      headers := '{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('supabase.anon_key') || '"}'
     );
   
   RETURN new;

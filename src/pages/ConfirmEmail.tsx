@@ -29,32 +29,6 @@ const ConfirmEmail = () => {
             setIsSuccess(true);
             console.log('User session:', data.session);
             
-            // Add confirmed user to newsletter subscribers
-            if (data.session.user.email) {
-              try {
-                await supabase.functions.invoke('newsletter-subscribe', {
-                  body: { email: data.session.user.email },
-                });
-                console.log('Successfully subscribed to newsletter:', data.session.user.email);
-              } catch (subscribeErr) {
-                console.error('Exception when subscribing to newsletter:', subscribeErr);
-              }
-              try {
-                const { error: folderError } = await supabase.functions.invoke('create-user-root-folder', {
-                  body: { user_id: data.session.user.id },
-                });
-              
-                if (folderError) {
-                  console.error('Error creating user folder:', folderError);
-                } else {
-                  console.log('Root folder created for user:', data.session.user.id);
-                }
-              } catch (folderErr) {
-                console.error('Exception when creating user folder:', folderErr);
-              }
-              
-            }
-            
             toast({
               title: "Email confirmed",
               description: "Your email has been successfully verified.",
@@ -94,42 +68,11 @@ const ConfirmEmail = () => {
           });
 
           if (verifyError) throw verifyError;
-          const userId = verifyData.user?.id;
-          if (userId) {
-            try {
-              const { error: folderError } = await supabase.functions.invoke('create-user-root-folder', {
-                body: { user_id: userId },
-              });
-
-              if (folderError) {
-                console.error('Error creating user folder:', folderError);
-              } else {
-                console.log('Root folder created for user:', userId);
-              }
-            } catch (folderErr) {
-              console.error('Exception when creating user folder:', folderErr);
-            }
-          }
-
+          
           // Check if we have user email from the successful verification
           const email = verifyData.user?.email;
           if (email) {
             setUserEmail(email);
-            
-            // Add confirmed user to newsletter subscribers
-            try {
-              const { error: subscribeError } = await supabase.functions.invoke('newsletter-subscribe', {
-                body: { email },
-              });
-              
-              if (subscribeError) {
-                console.error('Error subscribing to newsletter:', subscribeError);
-              } else {
-                console.log('Successfully subscribed to newsletter:', email);
-              }
-            } catch (subscribeErr) {
-              console.error('Exception when subscribing to newsletter:', subscribeErr);
-            }
           }
           
           setIsConfirming(false);

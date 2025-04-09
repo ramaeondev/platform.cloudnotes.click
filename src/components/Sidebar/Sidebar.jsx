@@ -2,8 +2,6 @@
 import React, { useState } from 'react';
 
 const Sidebar = ({ 
-  folders, 
-  categories, 
   onFolderSelect, 
   selectedFolderId 
 }) => {
@@ -14,70 +12,6 @@ const Sidebar = ({
       ...prev,
       [folderId]: !prev[folderId]
     }));
-  };
-
-  const renderFolders = (parentId = null, level = 0) => {
-    const filteredFolders = folders.filter(folder => folder.parentId === parentId);
-    
-    if (filteredFolders.length === 0 && level === 0) {
-      return (
-        <div className="p-4 text-sidebar-foreground/70 text-sm text-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-folder mx-auto mb-2 text-sidebar-foreground/50">
-            <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
-          </svg>
-          <p>No folders found.</p>
-          <p>Create one to organize your notes.</p>
-        </div>
-      );
-    }
-    
-    return filteredFolders.map(folder => {
-      const hasChildren = folders.some(f => f.parentId === folder.id);
-      const isExpanded = expandedFolders[folder.id];
-      const isSelected = selectedFolderId === folder.id;
-      
-      return (
-        <div key={folder.id} className={`mb-1 ${level > 0 ? 'ml-4' : ''}`}>
-          <div 
-            className={`flex items-center p-2 rounded-lg cursor-pointer hover:bg-muted ${
-              isSelected ? 'bg-primary/10 text-primary' : ''
-            }`}
-            onClick={() => onFolderSelect(folder.id)}
-          >
-            {hasChildren && (
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFolder(folder.id);
-                }}
-                className="mr-1 p-1 rounded hover:bg-muted/50 focus:outline-none"
-              >
-                {isExpanded ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-down">
-                    <path d="m6 9 6 6 6-6"/>
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-right">
-                    <path d="m9 6 6 6-6 6"/>
-                  </svg>
-                )}
-              </button>
-            )}
-            
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-folder mr-2">
-              <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
-            </svg>
-            <span className="flex-1 truncate">{folder.name}</span>
-          </div>
-          
-          {hasChildren && isExpanded && (
-            <div className="mt-1">
-              {renderFolders(folder.id, level + 1)}
-            </div>
-          )}
-        </div>
-      );
-    });
   };
 
   return (
@@ -104,8 +38,12 @@ const Sidebar = ({
           </button>
         </div>
         
-        <div>
-          {renderFolders()}
+        <div className="p-4 text-sidebar-foreground/70 text-sm text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-folder mx-auto mb-2 text-sidebar-foreground/50">
+            <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+          </svg>
+          <p>No folders found.</p>
+          <p>Create one to organize your notes.</p>
         </div>
       </div>
       
@@ -121,24 +59,10 @@ const Sidebar = ({
           </button>
         </div>
         
-        <div className="space-y-1">
-          {categories.length > 0 ? (
-            categories.map(category => (
-              <div 
-                key={category.id}
-                className="flex items-center p-2 rounded-lg cursor-pointer hover:bg-sidebar-accent"
-              >
-                <div className={`w-3 h-3 rounded-full mr-2 bg-cloudnotes-accent-${category.color}`}></div>
-                <span className="truncate">{category.name}</span>
-              </div>
-            ))
-          ) : (
-            <div className="p-4 text-sidebar-foreground/70 text-sm text-center">
-              <div className="w-3 h-3 rounded-full mb-2 bg-cloudnotes-accent-blue mx-auto"></div>
-              <p>No categories found.</p>
-              <p>Create one to organize your notes.</p>
-            </div>
-          )}
+        <div className="p-4 text-sidebar-foreground/70 text-sm text-center">
+          <div className="w-3 h-3 rounded-full mb-2 bg-blue-500 mx-auto"></div>
+          <p>No categories found.</p>
+          <p>Create one to organize your notes.</p>
         </div>
       </div>
     </div>
