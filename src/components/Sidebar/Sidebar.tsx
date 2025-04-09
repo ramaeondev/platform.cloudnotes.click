@@ -9,30 +9,39 @@ import { Loader } from '@/components/ui/loader';
 interface SidebarProps {
   onFolderSelect: (folderId: string | null) => void;
   selectedFolderId: string | null;
+  // Add folders and categories as optional props
+  folders?: Folder[];
+  categories?: Category[];
 }
 
-const Sidebar = ({ onFolderSelect, selectedFolderId }: SidebarProps) => {
+const Sidebar = ({ onFolderSelect, selectedFolderId, folders: foldersProp, categories: categoriesProp }: SidebarProps) => {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
 
-  // Fetch folders from the database
+  // Fetch folders from the database if not provided as props
   const { 
-    data: folders = [], 
+    data: foldersData = [], 
     isLoading: isFoldersLoading, 
     error: foldersError 
   } = useQuery({
     queryKey: ['folders'],
-    queryFn: getUserFolders
+    queryFn: getUserFolders,
+    enabled: !foldersProp // Only fetch if folders are not provided as props
   });
 
-  // Fetch categories from the database
+  // Fetch categories from the database if not provided as props
   const { 
-    data: categories = [], 
+    data: categoriesData = [], 
     isLoading: isCategoriesLoading,
     error: categoriesError
   } = useQuery({
     queryKey: ['categories'],
-    queryFn: getUserCategories
+    queryFn: getUserCategories,
+    enabled: !categoriesProp // Only fetch if categories are not provided as props
   });
+
+  // Use props if provided, otherwise use fetched data
+  const folders = foldersProp || foldersData;
+  const categories = categoriesProp || categoriesData;
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => ({
@@ -130,7 +139,7 @@ const Sidebar = ({ onFolderSelect, selectedFolderId }: SidebarProps) => {
         </div>
         
         <div>
-          {isFoldersLoading ? (
+          {(foldersProp ? false : isFoldersLoading) ? (
             <div className="flex justify-center p-4">
               <Loader size="sm" />
             </div>
@@ -157,7 +166,7 @@ const Sidebar = ({ onFolderSelect, selectedFolderId }: SidebarProps) => {
         </div>
         
         <div className="space-y-1">
-          {isCategoriesLoading ? (
+          {(categoriesProp ? false : isCategoriesLoading) ? (
             <div className="flex justify-center p-4">
               <Loader size="sm" />
             </div>
