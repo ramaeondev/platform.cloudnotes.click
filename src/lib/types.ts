@@ -5,12 +5,14 @@ export interface Category {
   id: string;
   name: string;
   color: CategoryColor;
+  isSystem?: boolean;
 }
 
 export interface Folder {
   id: string;
   name: string;
   parentId: string | null;
+  isSystem?: boolean;
 }
 
 export interface Note {

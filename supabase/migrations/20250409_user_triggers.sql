@@ -11,13 +11,13 @@ BEGIN
   INSERT INTO public.profiles (id, name)
   VALUES (new.id, COALESCE(new.raw_user_meta_data->>'name', new.email));
   
-  -- Create a default 'Root' folder for the user
-  INSERT INTO public.folders (name, user_id)
-  VALUES ('Root', new.id);
+  -- Create a default 'Root' folder for the user that cannot be deleted
+  INSERT INTO public.folders (name, user_id, is_system)
+  VALUES ('Root', new.id, true);
   
-  -- Create a default category
-  INSERT INTO public.categories (name, color, user_id)
-  VALUES ('Personal', 'blue', new.id);
+  -- Create a default category that cannot be deleted
+  INSERT INTO public.categories (name, color, user_id, is_system)
+  VALUES ('Default', 'none', new.id, true);
 
   -- Add user to newsletter subscribers if they don't already exist
   INSERT INTO public.newsletter_subscribers (email)

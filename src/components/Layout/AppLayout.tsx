@@ -19,7 +19,7 @@ import {
 import { getUserFolders } from '@/services/folderService';
 import { getUserCategories } from '@/services/categoryService';
 import { getNotesByFolder } from '@/services/noteService';
-import { Note } from '@/lib/types';
+import { Note, Folder, Category } from '@/lib/types';
 
 const AppLayout = () => {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
@@ -46,7 +46,7 @@ const AppLayout = () => {
     },
     enabled: !!user
   });
-
+  
   // Fetch folders data
   const { 
     data: folders = [],
@@ -198,6 +198,8 @@ const AppLayout = () => {
         <Sidebar 
           onFolderSelect={handleFolderSelect}
           selectedFolderId={selectedFolderId}
+          folders={folders}
+          categories={categories}
         />
       </div>
 

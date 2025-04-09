@@ -24,6 +24,7 @@ export async function getUserCategories(): Promise<Category[]> {
     user_id: string;
     created_at: string;
     updated_at: string;
+    is_system: boolean;
   }>;
 
   // Map the DB schema fields to our application model
@@ -31,6 +32,7 @@ export async function getUserCategories(): Promise<Category[]> {
     id: category.id,
     name: category.name,
     color: category.color as CategoryColor,
+    isSystem: category.is_system || category.name === 'Default', // Handle both new and old data
   })) as Category[];
 }
 
@@ -50,7 +52,8 @@ export async function createCategory(name: string): Promise<Category> {
     .insert({
       name, 
       color: randomColor,
-      user_id: user.id
+      user_id: user.id,
+      is_system: false // User-created categories are not system categories
     })
     .select()
     .single();
@@ -68,12 +71,14 @@ export async function createCategory(name: string): Promise<Category> {
     user_id: string;
     created_at: string;
     updated_at: string;
+    is_system: boolean;
   };
 
   return {
     id: category.id,
     name: category.name,
     color: category.color as CategoryColor,
+    isSystem: category.is_system,
   } as Category;
 }
 
@@ -83,6 +88,17 @@ export async function updateCategory(id: string, name: string, color: CategoryCo
   
   if (!user) {
     throw new Error('User not authenticated');
+  }
+  
+  // First check if the category is a system category
+  const { data: categoryData } = await supabase
+    .from('categories')
+    .select('is_system')
+    .eq('id', id)
+    .single();
+
+  if (categoryData?.is_system) {
+    throw new Error('System categories cannot be modified');
   }
   
   const { data, error } = await supabase
@@ -110,12 +126,14 @@ export async function updateCategory(id: string, name: string, color: CategoryCo
     user_id: string;
     created_at: string;
     updated_at: string;
+    is_system: boolean;
   };
 
   return {
     id: category.id,
     name: category.name,
     color: category.color as CategoryColor,
+    isSystem: category.is_system,
   } as Category;
 }
 
@@ -125,6 +143,17 @@ export async function deleteCategory(id: string): Promise<void> {
   
   if (!user) {
     throw new Error('User not authenticated');
+  }
+  
+  // First check if the category is a system category
+  const { data: categoryData } = await supabase
+    .from('categories')
+    .select('is_system')
+    .eq('id', id)
+    .single();
+
+  if (categoryData?.is_system) {
+    throw new Error('System categories cannot be deleted');
   }
   
   const { error } = await supabase

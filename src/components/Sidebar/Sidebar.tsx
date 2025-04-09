@@ -9,30 +9,40 @@ import { Loader } from '@/components/ui/loader';
 interface SidebarProps {
   onFolderSelect: (folderId: string | null) => void;
   selectedFolderId: string | null;
+  folders?: Folder[];
+  categories?: Category[];
 }
 
-const Sidebar = ({ onFolderSelect, selectedFolderId }: SidebarProps) => {
+const Sidebar = ({ onFolderSelect, selectedFolderId, folders: propFolders, categories: propCategories }: SidebarProps) => {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
 
-  // Fetch folders from the database
+  // Fetch folders from the database if not provided as props
   const { 
-    data: folders = [], 
-    isLoading: isFoldersLoading, 
-    error: foldersError 
+    data: fetchedFolders = [], 
+    isLoading: isFoldersLoading 
   } = useQuery({
     queryKey: ['folders'],
-    queryFn: getUserFolders
+    queryFn: getUserFolders,
+    enabled: !propFolders
   });
 
-  // Fetch categories from the database
-  const { 
-    data: categories = [], 
-    isLoading: isCategoriesLoading,
-    error: categoriesError
+  // Fetch categories from the database if not provided as props
+  const {
+    data: fetchedCategories = [], 
+    isLoading: isCategoriesLoading
   } = useQuery({
     queryKey: ['categories'],
-    queryFn: getUserCategories
+    queryFn: getUserCategories,
+    enabled: !propCategories
   });
+
+  // Use prop data if provided, otherwise use fetched data
+  const folders = propFolders || fetchedFolders;
+  const categories = propCategories || fetchedCategories;
+
+  // Determine loading states based on whether we're using props or fetching
+  const isFoldersDataLoading = propFolders ? false : isFoldersLoading;
+  const isCategoriesDataLoading = propCategories ? false : isCategoriesLoading;
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => ({
@@ -93,6 +103,11 @@ const Sidebar = ({ onFolderSelect, selectedFolderId }: SidebarProps) => {
               <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
             </svg>
             <span className="flex-1 truncate">{folder.name}</span>
+            {folder.isSystem && (
+              <span className="ml-1 inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">
+                System
+              </span>
+            )}
           </div>
           
           {hasChildren && isExpanded && (
@@ -130,13 +145,9 @@ const Sidebar = ({ onFolderSelect, selectedFolderId }: SidebarProps) => {
         </div>
         
         <div>
-          {isFoldersLoading ? (
+          {isFoldersDataLoading ? (
             <div className="flex justify-center p-4">
               <Loader size="sm" />
-            </div>
-          ) : foldersError ? (
-            <div className="p-4 text-red-500 text-sm text-center">
-              Failed to load folders
             </div>
           ) : (
             renderFolders()
@@ -157,13 +168,9 @@ const Sidebar = ({ onFolderSelect, selectedFolderId }: SidebarProps) => {
         </div>
         
         <div className="space-y-1">
-          {isCategoriesLoading ? (
+          {isCategoriesDataLoading ? (
             <div className="flex justify-center p-4">
               <Loader size="sm" />
-            </div>
-          ) : categoriesError ? (
-            <div className="p-4 text-red-500 text-sm text-center">
-              Failed to load categories
             </div>
           ) : categories.length > 0 ? (
             categories.map(category => (
@@ -171,8 +178,13 @@ const Sidebar = ({ onFolderSelect, selectedFolderId }: SidebarProps) => {
                 key={category.id}
                 className="flex items-center p-2 rounded-lg cursor-pointer hover:bg-sidebar-accent"
               >
-                <div className={`w-3 h-3 rounded-full mr-2 bg-${category.color}-500`}></div>
+                <div className={`w-3 h-3 rounded-full mr-2 bg-${category.color !== 'none' ? category.color + '-500' : 'gray-200'}`}></div>
                 <span className="truncate">{category.name}</span>
+                {category.isSystem && (
+                  <span className="ml-1 inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">
+                    System
+                  </span>
+                )}
               </div>
             ))
           ) : (

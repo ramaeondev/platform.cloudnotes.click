@@ -21,6 +21,7 @@ export async function getUserFolders(): Promise<Folder[]> {
     user_id: string;
     created_at: string;
     updated_at: string;
+    is_system: boolean;
   }>;
 
   // Map the DB schema fields to our application model
@@ -28,6 +29,7 @@ export async function getUserFolders(): Promise<Folder[]> {
     id: folder.id,
     name: folder.name,
     parentId: folder.parent_id,
+    isSystem: folder.is_system || folder.name === 'Root', // Handle both new and old data
   })) as Folder[];
 }
 
@@ -44,7 +46,8 @@ export async function createFolder(name: string, parentId: string | null = null)
     .insert({ 
       name, 
       parent_id: parentId,
-      user_id: user.id
+      user_id: user.id,
+      is_system: false // User-created folders are not system folders
     })
     .select()
     .single();
@@ -62,12 +65,14 @@ export async function createFolder(name: string, parentId: string | null = null)
     user_id: string;
     created_at: string;
     updated_at: string;
+    is_system: boolean;
   };
 
   return {
     id: folder.id,
     name: folder.name,
     parentId: folder.parent_id,
+    isSystem: folder.is_system,
   } as Folder;
 }
 
@@ -77,6 +82,17 @@ export async function updateFolder(id: string, name: string): Promise<Folder> {
   
   if (!user) {
     throw new Error('User not authenticated');
+  }
+
+  // First check if the folder is a system folder
+  const { data: folderData } = await supabase
+    .from('folders')
+    .select('is_system')
+    .eq('id', id)
+    .single();
+
+  if (folderData?.is_system) {
+    throw new Error('System folders cannot be modified');
   }
   
   const { data, error } = await supabase
@@ -103,12 +119,14 @@ export async function updateFolder(id: string, name: string): Promise<Folder> {
     user_id: string;
     created_at: string;
     updated_at: string;
+    is_system: boolean;
   };
 
   return {
     id: folder.id,
     name: folder.name,
     parentId: folder.parent_id,
+    isSystem: folder.is_system,
   } as Folder;
 }
 
@@ -118,6 +136,17 @@ export async function deleteFolder(id: string): Promise<void> {
   
   if (!user) {
     throw new Error('User not authenticated');
+  }
+
+  // First check if the folder is a system folder
+  const { data: folderData } = await supabase
+    .from('folders')
+    .select('is_system')
+    .eq('id', id)
+    .single();
+
+  if (folderData?.is_system) {
+    throw new Error('System folders cannot be deleted');
   }
   
   const { error } = await supabase

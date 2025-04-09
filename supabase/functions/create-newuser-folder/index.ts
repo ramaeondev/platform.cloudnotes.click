@@ -125,7 +125,7 @@ serve(async (req) => {
         headers
       }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("S3 folder creation error:", error);
 
     return new Response(
