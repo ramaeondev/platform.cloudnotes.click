@@ -86,21 +86,17 @@ const Integrations = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Amazon S3 Integration</CardTitle>
+                <CardTitle>CloudNotes Integration</CardTitle>
                 <CardDescription>Your notes are automatically backed up to Amazon S3</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center p-3 border rounded-md">
                   <div className="flex items-center flex-1">
                     <div className="mr-3 bg-blue-100 p-2 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" x2="12" y1="15" y2="3"/>
-                      </svg>
+                      <img src="/public/favicon.ico" alt="CloudNotes" className="w-6 h-6"/>
                     </div>
                     <div>
-                      <p className="font-medium">Amazon S3</p>
+                      <p className="font-medium">CloudNotes</p>
                       <p className="text-sm text-green-600">Connected</p>
                     </div>
                   </div>
