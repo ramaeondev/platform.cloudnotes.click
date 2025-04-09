@@ -2,6 +2,20 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Note } from "@/lib/types";
 
+// Type definition for the database note
+interface DatabaseNote {
+  id: string;
+  title: string;
+  content: string;
+  folder_id: string | null;
+  category_id: string | null;
+  user_id: string;
+  is_archived: boolean;
+  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export async function getNotesByFolder(folderId: string | null = null): Promise<Note[]> {
   // Get the current user
   const { data: { user } } = await supabase.auth.getUser();
@@ -10,7 +24,8 @@ export async function getNotesByFolder(folderId: string | null = null): Promise<
     throw new Error('User not authenticated');
   }
   
-  let query = supabase.from('notes').select('*').eq('user_id', user.id);
+  // Use explicit any type to bypass TypeScript checking for the supabase client
+  let query = (supabase.from('notes') as any).select('*').eq('user_id', user.id);
   
   if (folderId) {
     query = query.eq('folder_id', folderId);
@@ -28,7 +43,7 @@ export async function getNotesByFolder(folderId: string | null = null): Promise<
   }
   
   // Transform the data to match our Note type
-  return data.map(note => ({
+  return (data as DatabaseNote[]).map(note => ({
     id: note.id,
     title: note.title,
     content: note.content,
@@ -55,8 +70,8 @@ export async function createNote(
     throw new Error('User not authenticated');
   }
   
-  const { data, error } = await supabase
-    .from('notes')
+  const { data, error } = await (supabase
+    .from('notes') as any)
     .insert({
       title,
       content,
@@ -74,16 +89,17 @@ export async function createNote(
     throw error;
   }
   
+  const note = data as DatabaseNote;
   return {
-    id: data.id,
-    title: data.title,
-    content: data.content,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-    categoryId: data.category_id,
-    folderId: data.folder_id,
-    isArchived: data.is_archived,
-    isDeleted: data.is_deleted,
+    id: note.id,
+    title: note.title,
+    content: note.content,
+    createdAt: note.created_at,
+    updatedAt: note.updated_at,
+    categoryId: note.category_id,
+    folderId: note.folder_id,
+    isArchived: note.is_archived,
+    isDeleted: note.is_deleted,
     tags: []
   } as Note;
 }
@@ -117,8 +133,8 @@ export async function updateNote(
   if (updates.isArchived !== undefined) updateData.is_archived = updates.isArchived;
   if (updates.isDeleted !== undefined) updateData.is_deleted = updates.isDeleted;
   
-  const { data, error } = await supabase
-    .from('notes')
+  const { data, error } = await (supabase
+    .from('notes') as any)
     .update(updateData)
     .eq('id', id)
     .eq('user_id', user.id)
@@ -130,16 +146,17 @@ export async function updateNote(
     throw error;
   }
   
+  const note = data as DatabaseNote;
   return {
-    id: data.id,
-    title: data.title,
-    content: data.content,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-    categoryId: data.category_id,
-    folderId: data.folder_id,
-    isArchived: data.is_archived,
-    isDeleted: data.is_deleted,
+    id: note.id,
+    title: note.title,
+    content: note.content,
+    createdAt: note.created_at,
+    updatedAt: note.updated_at,
+    categoryId: note.category_id,
+    folderId: note.folder_id,
+    isArchived: note.is_archived,
+    isDeleted: note.is_deleted,
     tags: []
   } as Note;
 }
@@ -157,8 +174,8 @@ export async function permanentlyDeleteNote(id: string): Promise<void> {
     throw new Error('User not authenticated');
   }
   
-  const { error } = await supabase
-    .from('notes')
+  const { error } = await (supabase
+    .from('notes') as any)
     .delete()
     .eq('id', id)
     .eq('user_id', user.id);

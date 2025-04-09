@@ -1,18 +1,18 @@
+
 // supabase/functions/create-newuser-folder/index.ts
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-// Try this import instead
 import { S3Client, PutObjectCommand, ListObjectsV2Command } 
   from "https://deno.land/x/aws_sdk@v3.32.0-1/client-s3/mod.ts";
 import { withCors } from "../_shared/cors.ts";
-// Near the beginning of your function, add:
-console.log("Environment variables:", {
-  bucket: Deno.env.get("S3_BUCKET") || "NULL",
-  region: Deno.env.get("AWS_REGION") || "NULL",
-  hasAccessKey: !!Deno.env.get("AWS_ACCESS_KEY_ID"),
-  hasSecretKey: !!Deno.env.get("AWS_SECRET_ACCESS_KEY")
-});
 
 serve(withCors(async (req) => {
+  console.log("Environment variables:", {
+    bucket: Deno.env.get("S3_BUCKET") || "NULL",
+    region: Deno.env.get("AWS_REGION") || "NULL",
+    hasAccessKey: !!Deno.env.get("AWS_ACCESS_KEY_ID"),
+    hasSecretKey: !!Deno.env.get("AWS_SECRET_ACCESS_KEY")
+  });
+
   if (req.method !== "POST") {
     return new Response(
       JSON.stringify({ error: "Method not allowed" }),
@@ -44,6 +44,13 @@ serve(withCors(async (req) => {
 
     // Check for required environment variables
     if (!bucket || !region || !accessKeyId || !secretAccessKey) {
+      console.error("Missing required environment variables:", {
+        bucket: !!bucket,
+        region: !!region,
+        accessKeyId: !!accessKeyId,
+        secretAccessKey: !!secretAccessKey
+      });
+      
       return new Response(
         JSON.stringify({ error: "Missing required environment variables" }),
         {
@@ -62,6 +69,7 @@ serve(withCors(async (req) => {
     });
 
     const folderKey = `${uuid}/`;
+    console.log("Creating folder with key:", folderKey);
 
     // Check if folder already exists
     const check = new ListObjectsV2Command({
@@ -70,9 +78,12 @@ serve(withCors(async (req) => {
       MaxKeys: 1,
     });
 
+    console.log("Checking if folder exists...");
     const result = await s3Client.send(check);
+    console.log("Check result:", result);
 
     if (result.Contents && result.Contents.length > 0) {
+      console.log("Folder already exists");
       return new Response(
         JSON.stringify({ message: "Folder already exists", folder: folderKey }),
         {
@@ -89,7 +100,9 @@ serve(withCors(async (req) => {
       Body: "",
     });
 
-    await s3Client.send(createFolder);
+    console.log("Creating folder...");
+    const createResult = await s3Client.send(createFolder);
+    console.log("Create result:", createResult);
 
     return new Response(
       JSON.stringify({ success: true, message: "Folder created", folder: folderKey }),

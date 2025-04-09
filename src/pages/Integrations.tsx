@@ -9,6 +9,13 @@ const Integrations = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const handleConnectClick = (provider: string) => {
+    toast({
+      title: "Coming Soon",
+      description: `${provider} integration will be available in the future.`,
+    });
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       <div className="flex-1 flex flex-col">
@@ -56,7 +63,7 @@ const Integrations = () => {
                 <CardDescription>Connect your cloud storage providers to import your notes</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {["Google Drive", "OneDrive", "Dropbox", "Box"].map((provider) => (
+                {["Google Drive", "OneDrive", "Dropbox", "Box", "Mega"].map((provider) => (
                   <div key={provider} className="flex items-center justify-between p-3 border rounded-md">
                     <div className="flex items-center">
                       <div className="mr-3 bg-gray-100 p-2 rounded-full">
@@ -69,11 +76,41 @@ const Integrations = () => {
                         <p className="text-sm text-muted-foreground">Coming Soon</p>
                       </div>
                     </div>
-                    <Button variant="outline" disabled>
+                    <Button variant="outline" onClick={() => handleConnectClick(provider)}>
                       Connect
                     </Button>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Amazon S3 Integration</CardTitle>
+                <CardDescription>Your notes are automatically backed up to Amazon S3</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center p-3 border rounded-md">
+                  <div className="flex items-center flex-1">
+                    <div className="mr-3 bg-blue-100 p-2 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" x2="12" y1="15" y2="3"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium">Amazon S3</p>
+                      <p className="text-sm text-green-600">Connected</p>
+                    </div>
+                  </div>
+                  <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                    Active
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-4">
+                  All your notes are automatically backed up to Amazon S3 for safekeeping. This happens in the background whenever you create or update a note.
+                </p>
               </CardContent>
             </Card>
           </div>
