@@ -49,10 +49,5 @@ entrypoint = "supabase/functions/newsletter-unsubscribe/index.ts"
 [functions.create-newuser-folder]
 enabled = true
 verify_jwt = true
-import_map = "./functions/create-newuser-folder/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/create-newuser-folder/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/create-newuser-folder/*.html" ]
+import_map = "supabase/functions/create-newuser-folder/deno.json"
+entrypoint = "supabase/functions/create-newuser-folder/index.ts"

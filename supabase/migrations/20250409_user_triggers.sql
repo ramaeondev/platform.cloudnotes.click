@@ -22,9 +22,9 @@ BEGIN
   -- Call the edge function to create a folder in S3
   PERFORM
     net.http_post(
-      url := 'https://gyyhnbzekafnvxflhlni.functions.supabase.co/create-newuser-folder',
+      url := 'https://' || current_setting('supabase_functions_endpoint') || '/create-newuser-folder',
       body := json_build_object('uuid', new.id),
-      headers := '{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('request.headers')::json->>'apikey' || '"}'
+      headers := '{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('supabase.anon_key') || '"}'
     );
   
   RETURN new;

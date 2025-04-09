@@ -3,9 +3,23 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { S3Client, PutObjectCommand, ListObjectsV2Command } 
   from "https://deno.land/x/aws_sdk@v3.32.0-1/client-s3/mod.ts";
-import { withCors } from "../_shared/cors.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
-serve(withCors(async (req) => {
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders 
+    });
+  }
+
+  // Add CORS headers to response
+  const headers = {
+    ...corsHeaders,
+    "Content-Type": "application/json"
+  };
+
   console.log("Environment variables:", {
     bucket: Deno.env.get("S3_BUCKET") || "NULL",
     region: Deno.env.get("AWS_REGION") || "NULL",
@@ -18,7 +32,7 @@ serve(withCors(async (req) => {
       JSON.stringify({ error: "Method not allowed" }),
       { 
         status: 405,
-        headers: { "Content-Type": "application/json" }
+        headers
       }
     );
   }
@@ -32,7 +46,7 @@ serve(withCors(async (req) => {
         JSON.stringify({ error: "UUID is required" }),
         { 
           status: 400,
-          headers: { "Content-Type": "application/json" }
+          headers
         }
       );
     }
@@ -55,7 +69,7 @@ serve(withCors(async (req) => {
         JSON.stringify({ error: "Missing required environment variables" }),
         {
           status: 500,
-          headers: { "Content-Type": "application/json" }
+          headers
         }
       );
     }
@@ -88,7 +102,7 @@ serve(withCors(async (req) => {
         JSON.stringify({ message: "Folder already exists", folder: folderKey }),
         {
           status: 200,
-          headers: { "Content-Type": "application/json" }
+          headers
         }
       );
     }
@@ -108,7 +122,7 @@ serve(withCors(async (req) => {
       JSON.stringify({ success: true, message: "Folder created", folder: folderKey }),
       {
         status: 201,
-        headers: { "Content-Type": "application/json" }
+        headers
       }
     );
   } catch (error) {
@@ -118,8 +132,8 @@ serve(withCors(async (req) => {
       JSON.stringify({ error: "Failed to create folder", details: error.message }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" }
+        headers
       }
     );
   }
-}));
+});
