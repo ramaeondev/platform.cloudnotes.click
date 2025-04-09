@@ -1,18 +1,16 @@
 
-export type CategoryColor = 'red' | 'green' | 'yellow' | 'purple' | 'pink' | 'blue' | 'white' | 'none';
+export type CategoryColor = 'red' | 'green' | 'yellow' | 'purple' | 'pink' | 'blue' | 'none';
 
 export interface Category {
   id: string;
   name: string;
   color: CategoryColor;
-  isSystem?: boolean;
 }
 
 export interface Folder {
   id: string;
   name: string;
   parentId: string | null;
-  isSystem?: boolean;
 }
 
 export interface Note {

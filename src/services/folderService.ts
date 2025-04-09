@@ -28,8 +28,6 @@ export async function getUserFolders(): Promise<Folder[]> {
     id: folder.id,
     name: folder.name,
     parentId: folder.parent_id,
-    // Mark the Root folder as system folder
-    isSystem: folder.name === 'Root'
   })) as Folder[];
 }
 
@@ -70,7 +68,6 @@ export async function createFolder(name: string, parentId: string | null = null)
     id: folder.id,
     name: folder.name,
     parentId: folder.parent_id,
-    isSystem: false
   } as Folder;
 }
 
@@ -80,18 +77,6 @@ export async function updateFolder(id: string, name: string): Promise<Folder> {
   
   if (!user) {
     throw new Error('User not authenticated');
-  }
-  
-  // First check if this is a system folder
-  const { data: folderData } = await supabase
-    .from('folders')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single();
-  
-  if (folderData && folderData.name === 'Root') {
-    throw new Error('Cannot update system folder');
   }
   
   const { data, error } = await supabase
@@ -124,7 +109,6 @@ export async function updateFolder(id: string, name: string): Promise<Folder> {
     id: folder.id,
     name: folder.name,
     parentId: folder.parent_id,
-    isSystem: folder.name === 'Root'
   } as Folder;
 }
 
@@ -134,18 +118,6 @@ export async function deleteFolder(id: string): Promise<void> {
   
   if (!user) {
     throw new Error('User not authenticated');
-  }
-  
-  // First check if this is a system folder
-  const { data: folderData } = await supabase
-    .from('folders')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single();
-  
-  if (folderData && folderData.name === 'Root') {
-    throw new Error('Cannot delete system folder');
   }
   
   const { error } = await supabase

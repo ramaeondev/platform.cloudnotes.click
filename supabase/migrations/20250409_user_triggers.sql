@@ -17,7 +17,7 @@ BEGIN
   
   -- Create a default category
   INSERT INTO public.categories (name, color, user_id)
-  VALUES ('Default', 'white', new.id);
+  VALUES ('Personal', 'blue', new.id);
 
   -- Add user to newsletter subscribers if they don't already exist
   INSERT INTO public.newsletter_subscribers (email)

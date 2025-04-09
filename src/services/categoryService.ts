@@ -31,8 +31,6 @@ export async function getUserCategories(): Promise<Category[]> {
     id: category.id,
     name: category.name,
     color: category.color as CategoryColor,
-    // Mark the Default category as system category
-    isSystem: category.name === 'Default' && category.color === 'white'
   })) as Category[];
 }
 
@@ -76,7 +74,6 @@ export async function createCategory(name: string): Promise<Category> {
     id: category.id,
     name: category.name,
     color: category.color as CategoryColor,
-    isSystem: false
   } as Category;
 }
 
@@ -86,18 +83,6 @@ export async function updateCategory(id: string, name: string, color: CategoryCo
   
   if (!user) {
     throw new Error('User not authenticated');
-  }
-  
-  // First check if this is a system category
-  const { data: categoryData } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single();
-  
-  if (categoryData && categoryData.name === 'Default' && categoryData.color === 'white') {
-    throw new Error('Cannot update system category');
   }
   
   const { data, error } = await supabase
@@ -131,7 +116,6 @@ export async function updateCategory(id: string, name: string, color: CategoryCo
     id: category.id,
     name: category.name,
     color: category.color as CategoryColor,
-    isSystem: category.name === 'Default' && category.color === 'white'
   } as Category;
 }
 
@@ -141,18 +125,6 @@ export async function deleteCategory(id: string): Promise<void> {
   
   if (!user) {
     throw new Error('User not authenticated');
-  }
-  
-  // First check if this is a system category
-  const { data: categoryData } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single();
-  
-  if (categoryData && categoryData.name === 'Default' && categoryData.color === 'white') {
-    throw new Error('Cannot delete system category');
   }
   
   const { error } = await supabase
