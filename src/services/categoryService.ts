@@ -102,7 +102,10 @@ export async function updateCategory(id: string, name: string, color: CategoryCo
     throw fetchError;
   }
 
-  if (categoryData && categoryData.is_system) {
+  // Handle null or undefined is_system property
+  const isSystemCategory = categoryData && categoryData.is_system === true;
+  
+  if (isSystemCategory) {
     throw new Error('System categories cannot be modified');
   }
   
@@ -162,7 +165,10 @@ export async function deleteCategory(id: string): Promise<void> {
     throw fetchError;
   }
 
-  if (categoryData && categoryData.is_system) {
+  // Handle null or undefined is_system property
+  const isSystemCategory = categoryData && categoryData.is_system === true;
+  
+  if (isSystemCategory) {
     throw new Error('System categories cannot be deleted');
   }
   

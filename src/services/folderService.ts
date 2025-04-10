@@ -96,7 +96,10 @@ export async function updateFolder(id: string, name: string): Promise<Folder> {
     throw fetchError;
   }
 
-  if (folderData && folderData.is_system) {
+  // Handle null or undefined is_system property
+  const isSystemFolder = folderData && folderData.is_system === true;
+  
+  if (isSystemFolder) {
     throw new Error('System folders cannot be modified');
   }
   
@@ -155,7 +158,10 @@ export async function deleteFolder(id: string): Promise<void> {
     throw fetchError;
   }
 
-  if (folderData && folderData.is_system) {
+  // Handle null or undefined is_system property
+  const isSystemFolder = folderData && folderData.is_system === true;
+  
+  if (isSystemFolder) {
     throw new Error('System folders cannot be deleted');
   }
   
