@@ -1,5 +1,5 @@
 
-export type CategoryColor = 'red' | 'green' | 'yellow' | 'purple' | 'pink' | 'blue' | 'none';
+export type CategoryColor = 'red' | 'green' | 'yellow' | 'purple' | 'pink' | 'blue' | 'white' | 'none';
 
 export interface Category {
   id: string;

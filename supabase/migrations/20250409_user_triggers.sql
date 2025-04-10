@@ -15,7 +15,7 @@ BEGIN
   INSERT INTO public.folders (name, user_id, is_system)
   VALUES ('Root', new.id, true);
   
-  -- Create a default category that cannot be deleted
+  -- Create a default category with white color that cannot be deleted
   INSERT INTO public.categories (name, color, user_id, is_system)
   VALUES ('Default', 'none', new.id, true);
 

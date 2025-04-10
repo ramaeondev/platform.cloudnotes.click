@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Category, CategoryColor } from "@/lib/types";
 
 // Array of colors to randomly select from when creating a new category
-const categoryColors: CategoryColor[] = ["red", "green", "blue", "yellow", "purple", "pink"];
+const categoryColors: CategoryColor[] = ["red", "green", "blue", "yellow", "purple", "pink", "white"];
 
 export async function getUserCategories(): Promise<Category[]> {
   const { data, error } = await supabase
