@@ -1,3 +1,87 @@
+-- Drop duplicate triggers
+DROP TRIGGER IF EXISTS after_user_created ON auth.users;
+DROP TRIGGER IF EXISTS on_auth_user_created_folder ON auth.users;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Add text_color column to categories if it doesn't exist
+ALTER TABLE public.categories 
+ADD COLUMN IF NOT EXISTS text_color text DEFAULT '#000000';
+
+-- Keep only the main trigger that handles all user creation tasks
+CREATE TRIGGER on_auth_user_created 
+AFTER INSERT ON auth.users 
+FOR EACH ROW 
+EXECUTE FUNCTION handle_new_user();
+
+-- Add error handling to the handle_new_user function
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  response_status integer;
+  response_body text;
+  edge_function_url text;
+  anon_key text;
+  user_email text;
+  user_name text;
+BEGIN
+  -- Get user details
+  user_email := new.email;
+  user_name := COALESCE(new.raw_user_meta_data->>'name', new.email);
+  
+  -- Log the start of the function with user details
+  RAISE NOTICE '=== Starting handle_new_user ===';
+  RAISE NOTICE 'User ID: %', new.id;
+  RAISE NOTICE 'User Email: %', user_email;
+  RAISE NOTICE 'User Name: %', user_name;
+  
+  -- Create the user profile
+  BEGIN
+    INSERT INTO public.profiles (id, name)
+    VALUES (new.id, user_name);
+    RAISE NOTICE 'Successfully created profile for user %', new.id;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'Failed to create profile: %', SQLERRM;
+    RAISE WARNING 'Error details: %', SQLSTATE;
+  END;
+  
+  -- Create a default 'Root' folder for the user that cannot be deleted
+  BEGIN
+    INSERT INTO public.folders (name, user_id, is_system)
+    VALUES ('Root', new.id, true);
+    RAISE NOTICE 'Successfully created root folder for user %', new.id;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'Failed to create root folder: %', SQLERRM;
+    RAISE WARNING 'Error details: %', SQLSTATE;
+  END;
+  
+  -- Create a default category with white color that cannot be deleted
+  BEGIN
+    INSERT INTO public.categories (name, color, text_color, user_id, is_system)
+    VALUES ('Default', '#FFFFFF', '#000000', new.id, true);
+    RAISE NOTICE 'Successfully created default category for user % with color #FFFFFF', new.id;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'Failed to create default category: %', SQLERRM;
+    RAISE WARNING 'Error details: %', SQLSTATE;
+  END;
+
+  -- Add user to newsletter subscribers if they don't already exist
+  BEGIN
+    INSERT INTO public.newsletter_subscribers (email)
+    VALUES (user_email)
+    ON CONFLICT (email) 
+    DO UPDATE SET subscribed_at = now(), unsubscribed_at = NULL;
+    RAISE NOTICE 'Successfully added user % to newsletter subscribers', user_email;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'Failed to add to newsletter: %', SQLERRM;
+    RAISE WARNING 'Error details: %', SQLSTATE;
+  END;
+
+  -- Get the edge function URL and anon key
+  BEGIN
     edge_function_url := current_setting('supabase_functions_endpoint');
     anon_key := current_setting('supabase.anon_key');
     
