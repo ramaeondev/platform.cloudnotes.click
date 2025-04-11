@@ -1,31 +1,48 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../Sidebar/Sidebar';
-import NoteList from '../NoteList/NoteList';
-import Editor from '../Editor/Editor';
-import { mockNotes } from '@/lib/mockData';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import Sidebar from '../Sidebar/Sidebar.jsx';
+import NoteList from '../NoteList/NoteList.tsx';
+import Editor from '../Editor/Editor.jsx';
+import { useAuth } from '../../contexts/AuthContext.tsx';
+import { toast } from '../../hooks/use-toast.ts';
+import { Avatar, AvatarFallback } from "../../components/ui/avatar.tsx";
+import { getNotesByFolder } from '../../services/noteService.ts';
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "../../components/ui/dropdown-menu.tsx";
 
 const AppLayout = () => {
+  const [notes, setNotes] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showDevBanner, setShowDevBanner] = useState(true);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    loadNotes();
+  }, [selectedFolderId]);
+
+  const loadNotes = async () => {
+    try {
+      const fetchedNotes = await getNotesByFolder(selectedFolderId);
+      setNotes(fetchedNotes);
+    } catch (_error) {
+      console.error('Error loading notes:', _error);
+      toast({
+        title: "Error",
+        description: "Failed to load notes. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
   
-  // Filter notes based on selected folder
-  const filteredNotes = mockNotes.filter(note => {
+  const filteredNotes = notes.filter(note => {
     // Filter out deleted notes
     if (note.isDeleted) return false;
     
@@ -39,8 +56,12 @@ const AppLayout = () => {
   });
 
   const handleNoteSelect = (noteId) => {
-    const note = mockNotes.find(n => n.id === noteId);
-    setSelectedNote(note);
+    const note = notes.find(n => n.id === noteId);
+    setSelectedNote(note || null);
+  };
+
+  const handleNoteCreated = (newNote) => {
+    setNotes(prevNotes => [...prevNotes, newNote]);
   };
 
   const handleFolderSelect = (folderId) => {
@@ -60,7 +81,7 @@ const AppLayout = () => {
         description: "You have been signed out successfully.",
       });
       navigate('/signin');
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Error",
         description: "Failed to sign out. Please try again.",
@@ -126,7 +147,11 @@ const AppLayout = () => {
         {/* Header */}
         <div className="h-16 border-b flex items-center justify-between px-4">
           <div className="flex items-center">
-            <button onClick={toggleSidebar} className="mr-4 p-2 rounded hover:bg-muted">
+            <button 
+              type="button"
+              onClick={toggleSidebar} 
+              className="mr-4 p-2 rounded hover:bg-muted"
+            >
               {sidebarOpen ? (
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-panel-left-close">
                   <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
@@ -152,7 +177,7 @@ const AppLayout = () => {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="outline-none">
+                <button type="button" className="outline-none">
                   <Avatar className="h-8 w-8 cursor-pointer">
                     <AvatarFallback className="bg-primary text-primary-foreground">
                       {getUserInitials()}
@@ -209,6 +234,7 @@ const AppLayout = () => {
                 </p>
                 <p className="mt-3 text-sm md:mt-0 md:ml-6">
                   <button 
+                    type="button"
                     onClick={() => setShowDevBanner(false)}
                     className="whitespace-nowrap font-medium text-blue-700 hover:text-blue-600"
                   >
@@ -227,6 +253,7 @@ const AppLayout = () => {
               notes={filteredNotes}
               onNoteSelect={handleNoteSelect}
               selectedNoteId={selectedNote?.id}
+              onNoteCreated={handleNoteCreated}
             />
           </div>
           <div className="flex-1 overflow-y-auto">

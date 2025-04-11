@@ -1,22 +1,56 @@
-
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Note } from '@/lib/types';
+import { Note, Category } from '../../lib/types.ts';
+import { createNote } from '../../services/noteService.ts';
+import { toast } from '../../hooks/use-toast.ts';
 
 interface NoteListProps {
   notes: Note[];
   onNoteSelect: (noteId: string) => void;
   selectedNoteId?: string | null;
+  onNoteCreated?: (note: Note) => void;
+  selectedCategoryId?: string | null;
 }
 
-const NoteList: React.FC<NoteListProps> = ({ notes, onNoteSelect, selectedNoteId }) => {
+const NoteList: React.FC<NoteListProps> = ({ 
+  notes, 
+  onNoteSelect, 
+  selectedNoteId, 
+  onNoteCreated,
+  selectedCategoryId 
+}) => {
+  const handleCreateNote = async () => {
+    try {
+      const newNote = await createNote(
+        'Untitled Note',
+        '# Untitled Note\n\nStart writing here...',
+        null,
+        selectedCategoryId
+      );
+      toast({
+        title: "Note created",
+        description: "A new note has been created.",
+      });
+      onNoteCreated?.(newNote);
+      onNoteSelect(newNote.id);
+    } catch (_error) {
+      toast({
+        title: "Error",
+        description: "Failed to create note. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-semibold">Notes</h2>
         <button
+          type="button"
           className="p-1 rounded-md hover:bg-gray-100"
           title="Create new note"
+          onClick={handleCreateNote}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus">
             <path d="M12 5v14M5 12h14" />

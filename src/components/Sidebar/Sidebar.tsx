@@ -19,12 +19,14 @@ import { Input } from "../ui/input.tsx";
 
 interface SidebarProps {
   onFolderSelect: (folderId: string | null) => void;
+  onCategorySelect: (categoryId: string | null) => void;
   selectedFolderId: string | null;
+  selectedCategoryId: string | null;
   folders?: Folder[];
   categories?: Category[];
 }
 
-const Sidebar: FunctionComponent<SidebarProps> = ({ onFolderSelect, selectedFolderId, folders: propFolders, categories: propCategories }) => {
+const Sidebar: FunctionComponent<SidebarProps> = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedCategoryId, folders: propFolders, categories: propCategories }) => {
   // State management
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [isNewCategoryDialogOpen, setIsNewCategoryDialogOpen] = useState(false);
@@ -266,7 +268,10 @@ const Sidebar: FunctionComponent<SidebarProps> = ({ onFolderSelect, selectedFold
             (categories as Category[]).map((category: Category) => (
               <div 
                 key={category.id}
-                className="group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-sidebar-accent"
+                onClick={() => onCategorySelect(category.id)}
+                className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-sidebar-accent ${
+                  selectedCategoryId === category.id ? 'bg-primary/10 text-primary' : ''
+                }`}
               >
                 <div 
                   className="w-6 h-6 rounded-full flex items-center justify-center relative"

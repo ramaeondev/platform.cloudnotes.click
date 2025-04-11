@@ -1,63 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import Sidebar from '../Sidebar/Sidebar';
-import NoteList from '../NoteList/NoteList';
-import Editor from '../Editor/Editor';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { PageLoader } from '@/components/ui/loader';
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import Sidebar from '../Sidebar/Sidebar.jsx';
+import NoteList from '../NoteList/NoteList.tsx';
+import Editor from '../Editor/Editor.jsx';
+import { useAuth } from '../../contexts/AuthContext.tsx';
+import { toast } from '../../hooks/use-toast.ts';
+import { PageLoader } from '../ui/loader.tsx';
+import { Avatar, AvatarFallback } from "../ui/avatar.tsx";
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { getUserFolders } from '@/services/folderService';
-import { getUserCategories } from '@/services/categoryService';
-import { getNotesByFolder } from '@/services/noteService';
-import { Note, Folder, Category } from '@/lib/types';
+} from "../ui/dropdown-menu.tsx";
+import { getUserFolders } from '../../services/folderService.ts';
+import { getUserCategories } from '../../services/categoryService.ts';
+import { getNotesByFolder } from '../../services/noteService.ts';
+import { Note } from '../../lib/types.ts';
 
 const AppLayout = () => {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showDevBanner, setShowDevBanner] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  
-  // Fetch user profile data
-  const { data: profile, isLoading: isProfileLoading } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user
-  });
-  
-  // Fetch folders data
+
+  // Data fetching
   const { 
-    data: folders = [],
-    isLoading: isFoldersLoading
+    data: folders = [], 
+    isLoading: isFoldersLoading 
   } = useQuery({
     queryKey: ['folders'],
     queryFn: getUserFolders,
     enabled: !!user
   });
-  
-  // Fetch categories data
+
   const {
     data: categories = [],
     isLoading: isCategoriesLoading
@@ -66,45 +48,57 @@ const AppLayout = () => {
     queryFn: getUserCategories,
     enabled: !!user
   });
-  
-  // Fetch notes data
+
   const {
     data: notes = [],
     isLoading: isNotesLoading
   } = useQuery({
-    queryKey: ['notes', selectedFolderId],
+    queryKey: ['notes', selectedFolderId, selectedCategoryId],
     queryFn: () => getNotesByFolder(selectedFolderId),
     enabled: !!user
   });
 
   // Detect when data is loaded
   useEffect(() => {
-    if (!isProfileLoading && !isFoldersLoading && !isCategoriesLoading && !isNotesLoading) {
+    if (!isFoldersLoading && !isCategoriesLoading && !isNotesLoading) {
       setIsPageLoading(false);
     }
-  }, [isProfileLoading, isFoldersLoading, isCategoriesLoading, isNotesLoading]);
-  
-  // Filter notes based on selected folder and other criteria
-  const filteredNotes = notes.filter(note => {
+  }, [isFoldersLoading, isCategoriesLoading, isNotesLoading]);
+
+  // Filter notes based on selected folder and category
+  const filteredNotes = notes.filter((note: Note) => {
     // Filter out deleted notes
     if (note.isDeleted) return false;
+    
+    // If category is selected, filter by category
+    if (selectedCategoryId) {
+      return note.categoryId === selectedCategoryId;
+    }
     
     // If folder is selected, filter by folder
     if (selectedFolderId) {
       return note.folderId === selectedFolderId;
     }
     
-    // If no folder is selected, show notes without a folder (root level)
+    // If no folder or category is selected, show notes without a folder (root level)
     return note.folderId === null && !note.isArchived;
   });
 
+  // Event handlers
   const handleNoteSelect = (noteId: string) => {
-    const note = notes.find(n => n.id === noteId);
+    const note = notes.find((n: Note) => n.id === noteId);
     setSelectedNote(note || null);
   };
 
   const handleFolderSelect = (folderId: string | null) => {
     setSelectedFolderId(folderId);
+    setSelectedCategoryId(null); // Clear category selection when folder is selected
+    setSelectedNote(null);
+  };
+
+  const handleCategorySelect = (categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
+    setSelectedFolderId(null); // Clear folder selection when category is selected
     setSelectedNote(null);
   };
 
@@ -120,7 +114,7 @@ const AppLayout = () => {
         description: "You have been signed out successfully.",
       });
       navigate('/signin');
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Error",
         description: "Failed to sign out. Please try again.",
@@ -145,10 +139,6 @@ const AppLayout = () => {
   const getUserDisplay = () => {
     if (!user) return 'U';
     
-    if (profile?.name) {
-      return profile.name.split(' ')[0];
-    }
-    
     if (user.user_metadata?.name) {
       return user.user_metadata.name.split(' ')[0];
     }
@@ -163,14 +153,6 @@ const AppLayout = () => {
   // Get user's initials for avatar
   const getUserInitials = () => {
     if (!user) return 'U';
-    
-    if (profile?.name) {
-      const nameParts = profile.name.split(' ');
-      if (nameParts.length > 1) {
-        return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
-      }
-      return nameParts[0][0].toUpperCase();
-    }
     
     if (user.user_metadata?.name) {
       const nameParts = user.user_metadata.name.split(' ');
@@ -197,7 +179,9 @@ const AppLayout = () => {
       <div className={`${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden`}>
         <Sidebar 
           onFolderSelect={handleFolderSelect}
+          onCategorySelect={handleCategorySelect}
           selectedFolderId={selectedFolderId}
+          selectedCategoryId={selectedCategoryId}
           folders={folders}
           categories={categories}
         />
@@ -208,7 +192,11 @@ const AppLayout = () => {
         {/* Header */}
         <div className="h-16 border-b flex items-center justify-between px-4">
           <div className="flex items-center">
-            <button onClick={toggleSidebar} className="mr-4 p-2 rounded hover:bg-muted">
+            <button 
+              type="button"
+              onClick={toggleSidebar} 
+              className="mr-4 p-2 rounded hover:bg-muted"
+            >
               {sidebarOpen ? (
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-panel-left-close">
                   <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
@@ -234,7 +222,7 @@ const AppLayout = () => {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="outline-none">
+                <button type="button" className="outline-none">
                   <Avatar className="h-8 w-8 cursor-pointer">
                     <AvatarFallback className="bg-primary text-primary-foreground">
                       {getUserInitials()}
@@ -244,7 +232,7 @@ const AppLayout = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-4 py-3 border-b">
-                  <p className="text-sm font-medium">{profile?.name || user?.user_metadata?.name || user?.email}</p>
+                  <p className="text-sm font-medium">{user?.user_metadata?.name || user?.email}</p>
                   <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
                 </div>
                 <DropdownMenuItem onClick={handleNavigateToProfile}>
@@ -300,6 +288,7 @@ const AppLayout = () => {
                 </p>
                 <p className="mt-3 text-sm md:mt-0 md:ml-6">
                   <button 
+                    type="button"
                     onClick={() => setShowDevBanner(false)}
                     className="whitespace-nowrap font-medium text-blue-700 hover:text-blue-600"
                   >
@@ -318,11 +307,13 @@ const AppLayout = () => {
               notes={filteredNotes}
               onNoteSelect={handleNoteSelect}
               selectedNoteId={selectedNote?.id}
+              selectedCategoryId={selectedCategoryId}
             />
           </div>
           <div className="flex-1 overflow-y-auto">
             <Editor 
               note={selectedNote}
+              categories={categories}
             />
           </div>
         </div>

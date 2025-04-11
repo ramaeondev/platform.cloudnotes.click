@@ -44,7 +44,9 @@ serve(async (req) => {
       throw new Error('Invalid user')
     }
 
-    const { operation } = await req.json()
+    // Parse request body once
+    const body = await req.json()
+    const { operation, name, id } = body
 
     switch (operation) {
       case 'getAll': {
@@ -81,11 +83,11 @@ serve(async (req) => {
       }
 
       case 'create': {
-        const { name } = await req.json()
+        if (!name) throw new Error('Name is required')
         
-        // Call the generate-category-color function to get a unique color
+        // Call the generate-category-color function without /functions/v1/ prefix
         const colorResponse = await fetch(
-          `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-category-color`,
+          `${Deno.env.get('SUPABASE_URL')}/generate-category-color`,
           {
             method: 'POST',
             headers: {
@@ -126,8 +128,6 @@ serve(async (req) => {
       }
 
       case 'update': {
-        const { id, name } = await req.json()
-
         // Check if the category belongs to the user and is not a system category
         const { data: existing, error: fetchError } = await supabaseClient
           .from('categories')
@@ -161,8 +161,6 @@ serve(async (req) => {
       }
 
       case 'delete': {
-        const { id } = await req.json()
-
         // Check if the category belongs to the user and is not a system category
         const { data: existing, error: fetchError } = await supabaseClient
           .from('categories')
@@ -214,7 +212,7 @@ serve(async (req) => {
   1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
   2. Make an HTTP request:
 
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/category-operations' \
+  curl -i --location --request POST 'http://127.0.0.1:54321/category-operations' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
     --data '{"name":"Functions"}'

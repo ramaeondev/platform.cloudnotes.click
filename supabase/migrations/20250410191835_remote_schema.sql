@@ -1,6 +1,6 @@
 CREATE TRIGGER after_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION create_default_root_folder();
 
-CREATE TRIGGER "newsletter-subscription" AFTER UPDATE ON auth.users FOR EACH ROW EXECUTE FUNCTION supabase_functions.http_request('https://gyyhnbzekafnvxflhlni.supabase.co/functions/v1/newsletter-subscribe', 'POST', '{"Content-type":"application/json"}', '{}', '5000');
+CREATE TRIGGER "newsletter-subscription" AFTER UPDATE ON auth.users FOR EACH ROW EXECUTE FUNCTION supabase_functions.http_request('https://gyyhnbzekafnvxflhlni.supabase.co/newsletter-subscribe', 'POST', '{"Content-type":"application/json"}', '{}', '5000');
 
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
