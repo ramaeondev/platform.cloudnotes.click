@@ -1,9 +1,17 @@
+import { supabase } from "../integrations/supabase/client.ts";
+import { Category } from "../lib/types.ts";
 
-import { supabase } from "@/integrations/supabase/client";
-import { Category, CategoryColor } from "@/lib/types";
+// Function to generate a random hex color
+function generateRandomColor(): string {
+  // Generate vibrant colors by using higher values in RGB
+  const r = Math.floor(Math.random() * 156 + 100).toString(16).padStart(2, '0'); // 100-255
+  const g = Math.floor(Math.random() * 156 + 100).toString(16).padStart(2, '0'); // 100-255
+  const b = Math.floor(Math.random() * 156 + 100).toString(16).padStart(2, '0'); // 100-255
+  return `#${r}${g}${b}`;
+}
 
-// Array of colors to randomly select from when creating a new category
-const categoryColors: CategoryColor[] = ["red", "green", "blue", "yellow", "purple", "pink", "white"];
+// Default system category color
+const DEFAULT_CATEGORY_COLOR = '#FFFFFF';
 
 export async function getUserCategories(): Promise<Category[]> {
   const { data, error } = await supabase
@@ -31,8 +39,8 @@ export async function getUserCategories(): Promise<Category[]> {
   return categories.map(category => ({
     id: category.id,
     name: category.name,
-    color: category.color as CategoryColor,
-    isSystem: category.is_system || false, // Handle both new and old data
+    color: category.color || DEFAULT_CATEGORY_COLOR,
+    isSystem: category.is_system || false,
   })) as Category[];
 }
 
@@ -44,16 +52,16 @@ export async function createCategory(name: string): Promise<Category> {
     throw new Error('User not authenticated');
   }
   
-  // Randomly select a color from the array
-  const randomColor = categoryColors[Math.floor(Math.random() * categoryColors.length)];
+  // Generate a random hex color
+  const color = generateRandomColor();
   
   const { data, error } = await supabase
     .from('categories')
     .insert({
       name, 
-      color: randomColor,
+      color,
       user_id: user.id,
-      is_system: false // User-created categories are not system categories
+      is_system: false
     })
     .select()
     .single();
@@ -77,12 +85,12 @@ export async function createCategory(name: string): Promise<Category> {
   return {
     id: category.id,
     name: category.name,
-    color: category.color as CategoryColor,
+    color: category.color || DEFAULT_CATEGORY_COLOR,
     isSystem: category.is_system || false,
   } as Category;
 }
 
-export async function updateCategory(id: string, name: string, color: CategoryColor): Promise<Category> {
+export async function updateCategory(id: string, name: string, color: string): Promise<Category> {
   // Get the current user
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -140,7 +148,7 @@ export async function updateCategory(id: string, name: string, color: CategoryCo
   return {
     id: category.id,
     name: category.name,
-    color: category.color as CategoryColor,
+    color: category.color || DEFAULT_CATEGORY_COLOR,
     isSystem: category.is_system || false,
   } as Category;
 }

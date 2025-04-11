@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -125,6 +124,10 @@
   
   .note-category-blue {
     @apply bg-cloudnotes-accent-blue/10 text-cloudnotes-accent-blue;
+  }
+
+  .note-category-white {
+    @apply bg-white/10 text-white border border-white/20;
   }
 
   .calendar-day {

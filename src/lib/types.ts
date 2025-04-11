@@ -1,10 +1,8 @@
-
-export type CategoryColor = 'red' | 'green' | 'yellow' | 'purple' | 'pink' | 'blue' | 'white' | 'none';
-
 export interface Category {
   id: string;
   name: string;
-  color: CategoryColor;
+  color: string; // Hex color string like #FFFFFF
+  notesCount?: number;
   isSystem?: boolean;
 }
 

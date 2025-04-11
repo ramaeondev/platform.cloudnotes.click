@@ -1,10 +1,9 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getUserFolders } from '@/services/folderService';
-import { getUserCategories } from '@/services/categoryService';
-import { Folder, Category } from '@/lib/types';
-import { Loader } from '@/components/ui/loader';
+import { getUserFolders } from '../../services/folderService.ts';
+import { getUserCategories } from '../../services/categoryService.ts';
+import { Folder, Category } from '../../lib/types.ts';
+import { Loader } from '../ui/loader.tsx';
 
 interface SidebarProps {
   onFolderSelect: (folderId: string | null) => void;
@@ -18,7 +17,7 @@ const Sidebar = ({ onFolderSelect, selectedFolderId, folders: propFolders, categ
 
   // Fetch folders from the database if not provided as props
   const { 
-    data: fetchedFolders = [], 
+    data: fetchedFolders = [] as Folder[], 
     isLoading: isFoldersLoading 
   } = useQuery({
     queryKey: ['folders'],
@@ -28,7 +27,7 @@ const Sidebar = ({ onFolderSelect, selectedFolderId, folders: propFolders, categ
 
   // Fetch categories from the database if not provided as props
   const {
-    data: fetchedCategories = [], 
+    data: fetchedCategories = [] as Category[], 
     isLoading: isCategoriesLoading
   } = useQuery({
     queryKey: ['categories'],
@@ -37,8 +36,8 @@ const Sidebar = ({ onFolderSelect, selectedFolderId, folders: propFolders, categ
   });
 
   // Use prop data if provided, otherwise use fetched data
-  const folders = propFolders || fetchedFolders;
-  const categories = propCategories || fetchedCategories;
+  const folders: Folder[] = propFolders || fetchedFolders;
+  const categories: Category[] = propCategories || fetchedCategories;
 
   // Determine loading states based on whether we're using props or fetching
   const isFoldersDataLoading = propFolders ? false : isFoldersLoading;
@@ -81,6 +80,7 @@ const Sidebar = ({ onFolderSelect, selectedFolderId, folders: propFolders, categ
           >
             {hasChildren && (
               <button 
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleFolder(folder.id);
@@ -136,7 +136,7 @@ const Sidebar = ({ onFolderSelect, selectedFolderId, folders: propFolders, categ
       <div className="p-4 flex-1 overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-medium text-sidebar-foreground/80">Folders</h3>
-          <button className="p-1 rounded hover:bg-sidebar-accent focus:outline-none">
+          <button type="button" className="p-1 rounded hover:bg-sidebar-accent focus:outline-none">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus">
               <path d="M12 5v14"/>
               <path d="M5 12h14"/>
@@ -159,7 +159,7 @@ const Sidebar = ({ onFolderSelect, selectedFolderId, folders: propFolders, categ
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-medium text-sidebar-foreground/80">Categories</h3>
-          <button className="p-1 rounded hover:bg-sidebar-accent focus:outline-none">
+          <button type="button" className="p-1 rounded hover:bg-sidebar-accent focus:outline-none">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus">
               <path d="M12 5v14"/>
               <path d="M5 12h14"/>
@@ -176,10 +176,19 @@ const Sidebar = ({ onFolderSelect, selectedFolderId, folders: propFolders, categ
             categories.map(category => (
               <div 
                 key={category.id}
-                className="flex items-center p-2 rounded-lg cursor-pointer hover:bg-sidebar-accent"
+                className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-sidebar-accent"
               >
-                <div className={`w-3 h-3 rounded-full mr-2 bg-${category.color !== 'none' ? category.color + '-500' : 'gray-200'}`}></div>
-                <span className="truncate">{category.name}</span>
+                <div 
+                  className="w-6 h-6 rounded-full flex items-center justify-center relative"
+                  style={{ backgroundColor: category.color }}
+                >
+                  {category.notesCount !== undefined && (
+                    <span className="text-xs font-medium text-black">
+                      {category.notesCount}
+                    </span>
+                  )}
+                </div>
+                <span className="truncate flex-1">{category.name}</span>
                 {category.isSystem && (
                   <span className="ml-1 inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">
                     System
