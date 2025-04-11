@@ -24,9 +24,18 @@ interface SidebarProps {
   selectedCategoryId: string | null;
   folders?: Folder[];
   categories?: Category[];
+  refetchCategories?: () => void;
 }
 
-const Sidebar: FunctionComponent<SidebarProps> = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedCategoryId, folders: propFolders, categories: propCategories }) => {
+const Sidebar: FunctionComponent<SidebarProps> = ({ 
+  onFolderSelect, 
+  onCategorySelect, 
+  selectedFolderId, 
+  selectedCategoryId, 
+  folders: propFolders,
+  categories: propCategories,
+  refetchCategories
+}) => {
   // State management
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [isNewCategoryDialogOpen, setIsNewCategoryDialogOpen] = useState(false);
@@ -70,11 +79,20 @@ const Sidebar: FunctionComponent<SidebarProps> = ({ onFolderSelect, onCategorySe
   };
 
   const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast({
+        title: "Error",
+        description: "Category name cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await createCategory(newCategoryName);
       setNewCategoryName('');
       setIsNewCategoryDialogOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ['categories'] });
+      refetchCategories?.(); // Refresh categories after creation
       toast({
         title: "Success",
         description: "Category created successfully",

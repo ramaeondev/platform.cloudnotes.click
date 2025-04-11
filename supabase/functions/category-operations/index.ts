@@ -2,9 +2,7 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
-// Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 import { corsHeaders } from '../_shared/cors.ts'
@@ -15,6 +13,117 @@ interface Category {
   color: string
   is_system: boolean
   user_id: string
+}
+
+interface HSL {
+  h: number // hue (0-360)
+  s: number // saturation (0-100)
+  l: number // lightness (0-100)
+}
+
+function hslToHex({ h, s, l }: HSL): string {
+  s /= 100
+  l /= 100
+
+  const a = s * Math.min(l, 1 - l)
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+    return Math.round(255 * color).toString(16).padStart(2, '0')
+  }
+
+  return `#${f(0)}${f(8)}${f(4)}`
+}
+
+function generateRandomHSL(existingHues: number[] = []): HSL {
+  // Find a unique hue that's not too close to existing ones
+  let hue: number;
+  let attempts = 0;
+  const maxAttempts = 20;
+  const minHueDiff = 30;
+
+  console.log('Generating random HSL color. Existing hues:', existingHues);
+
+  do {
+    hue = Math.floor(Math.random() * 360);
+    attempts++;
+    
+    // After max attempts, gradually reduce the minimum hue difference
+    const currentMinDiff = Math.max(5, minHueDiff * (1 - attempts / maxAttempts));
+    
+    console.log(`Attempt ${attempts}: Generated hue ${hue}, minimum difference: ${currentMinDiff}`);
+    
+    // Check if this hue is unique enough
+    const tooClose = existingHues.some(h => {
+      const diff = Math.abs(h - hue);
+      const isTooClose = diff < currentMinDiff;
+      if (isTooClose) {
+        console.log(`  Too close to existing hue ${h} (difference: ${diff})`);
+      }
+      return isTooClose;
+    });
+
+    if (!tooClose) {
+      console.log(`Found acceptable hue: ${hue} after ${attempts} attempts`);
+      break;
+    }
+  } while (attempts < maxAttempts);
+
+  const result = {
+    h: hue,
+    s: 70 + Math.random() * 20, // 70-90% saturation for vibrant colors
+    l: 45 + Math.random() * 10  // 45-55% lightness for good contrast
+  };
+
+  console.log('Generated final HSL color:', result);
+  return result;
+}
+
+async function generateUniqueColor(supabaseClient: any, userId: string): Promise<string> {
+  // Get existing category colors for the user
+  const { data: existingCategories, error: categoriesError } = await supabaseClient
+    .from('categories')
+    .select('color')
+    .eq('user_id', userId);
+
+  if (categoriesError) {
+    console.error('Error fetching existing categories:', categoriesError);
+    throw categoriesError;
+  }
+
+  // Extract existing hues from hex colors
+  const existingHues = existingCategories
+    .map(cat => cat.color)
+    .filter((color): color is string => typeof color === 'string')
+    .map(color => {
+      console.log('Processing color:', color);
+      // Convert hex to RGB
+      const r = parseInt(color.slice(1, 3), 16) / 255;
+      const g = parseInt(color.slice(3, 5), 16) / 255;
+      const b = parseInt(color.slice(5, 7), 16) / 255;
+
+      // Convert RGB to HSL (only need hue)
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const d = max - min;
+
+      let h = 0;
+      if (d === 0) h = 0;
+      else if (max === r) h = 60 * ((g - b) / d % 6);
+      else if (max === g) h = 60 * ((b - r) / d + 2);
+      else if (max === b) h = 60 * ((r - g) / d + 4);
+
+      const hue = (h + 360) % 360;
+      console.log(`Converted ${color} to hue: ${hue}`);
+      return hue;
+    });
+
+  // Generate a new unique color
+  const newHSL = generateRandomHSL(existingHues);
+  const newColor = hslToHex(newHSL);
+  console.log('Generated new color:', newColor);
+  
+  return newColor;
 }
 
 console.log("Hello from Functions!")
@@ -84,27 +193,15 @@ serve(async (req) => {
 
       case 'create': {
         if (!name) throw new Error('Name is required')
+        console.log('Creating new category with name:', name);
         
-        // Call the generate-category-color function without /functions/v1/ prefix
-        const colorResponse = await fetch(
-          `${Deno.env.get('SUPABASE_URL')}/generate-category-color`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${authHeader}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ user_id: user.id })
-          }
-        )
-
-        if (!colorResponse.ok) {
-          throw new Error('Failed to generate unique color')
-        }
-
-        const { color } = await colorResponse.json()
-
+        // Generate a unique color
+        console.log('Generating unique color...');
+        const color = await generateUniqueColor(supabaseClient, user.id);
+        console.log('Generated color:', color);
+        
         // Create the category
+        console.log('Creating category in database...');
         const { data, error } = await supabaseClient
           .from('categories')
           .insert({
@@ -116,8 +213,12 @@ serve(async (req) => {
           .select()
           .single()
 
-        if (error) throw error
+        if (error) {
+          console.error('Error creating category:', error);
+          throw error;
+        }
 
+        console.log('Successfully created category:', data);
         return new Response(
           JSON.stringify({ category: data }),
           {

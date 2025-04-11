@@ -1,19 +1,11 @@
--- Drop duplicate triggers
-DROP TRIGGER IF EXISTS after_user_created ON auth.users;
-DROP TRIGGER IF EXISTS on_auth_user_created_folder ON auth.users;
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+-- Drop any existing triggers that might use the function
+DROP TRIGGER IF EXISTS set_category_color ON public.categories;
+DROP TRIGGER IF EXISTS generate_category_color ON public.categories;
 
--- Add text_color column to categories if it doesn't exist
-ALTER TABLE public.categories 
-ADD COLUMN IF NOT EXISTS text_color text DEFAULT '#000000';
+-- Drop the function if it exists
+DROP FUNCTION IF EXISTS public.generate_category_color();
 
--- Keep only the main trigger that handles all user creation tasks
-CREATE TRIGGER on_auth_user_created 
-AFTER INSERT ON auth.users 
-FOR EACH ROW 
-EXECUTE FUNCTION handle_new_user();
-
--- Add error handling to the handle_new_user function
+-- Remove any function calls from existing triggers
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql

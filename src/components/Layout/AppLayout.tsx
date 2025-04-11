@@ -42,7 +42,8 @@ const AppLayout = () => {
 
   const {
     data: categories = [],
-    isLoading: isCategoriesLoading
+    isLoading: isCategoriesLoading,
+    refetch: refetchCategories
   } = useQuery({
     queryKey: ['categories'],
     queryFn: getUserCategories,
@@ -184,6 +185,7 @@ const AppLayout = () => {
           selectedCategoryId={selectedCategoryId}
           folders={folders}
           categories={categories}
+          refetchCategories={refetchCategories}
         />
       </div>
 

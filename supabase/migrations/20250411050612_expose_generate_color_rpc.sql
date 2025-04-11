@@ -1,0 +1,2 @@
+-- Empty migration since we no longer need the generate_category_color function
+-- The color generation is now handled directly in the category-operations Edge Function
