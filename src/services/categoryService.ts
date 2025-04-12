@@ -4,9 +4,10 @@ import { Category } from "../lib/types.ts";
 const SUPABASE_URL = "https://gyyhnbzekafnvxflhlni.supabase.co";
 
 interface CategoryOperation<T> {
-  operation: 'getAll' | 'create' | 'update' | 'delete';
+  operation: 'getAll' | 'create' | 'update' | 'delete' | 'updateSequence';
   name?: string;
   id?: string;
+  sequence?: number;
   responseKey?: keyof T;
 }
 
@@ -33,9 +34,10 @@ async function getAuthContext(): Promise<AuthContext> {
 }
 
 interface RequestBody {
-  operation: 'getAll' | 'create' | 'update' | 'delete';
+  operation: 'getAll' | 'create' | 'update' | 'delete' | 'updateSequence';
   name?: string;
   id?: string;
+  sequence?: number;
 }
 
 async function makeRequest<T>(
@@ -83,7 +85,8 @@ async function executeOperation<T>(operation: CategoryOperation<T>): Promise<T[k
     const requestBody = {
       operation: operation.operation,
       ...(operation.name && { name: operation.name }),
-      ...(operation.id && { id: operation.id })
+      ...(operation.id && { id: operation.id }),
+      ...(operation.sequence && { sequence: operation.sequence })
     };
 
     // Log request details once
@@ -136,5 +139,13 @@ export async function deleteCategory(id: string): Promise<void> {
   await executeOperation({
     operation: 'delete',
     id
+  });
+}
+
+export async function updateCategorySequence(id: string, sequence: number): Promise<void> {
+  await executeOperation({
+    operation: 'updateSequence',
+    id,
+    sequence
   });
 }

@@ -13,6 +13,7 @@ interface Category {
   color: string
   is_system: boolean
   user_id: string
+  sequence: number
   notes?: Array<{ count: number }>
 }
 
@@ -137,7 +138,7 @@ async function generateUniqueColor(supabaseClient: SupabaseClient, userId: strin
 
 console.log("Hello from Functions!")
 
-serve(async (req) => {
+export async function serve(req: Request): Promise<Response> {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -169,18 +170,18 @@ serve(async (req) => {
 
     // Parse request body once
     const body = await req.json()
-    const { operation, name, id } = body
+    const { operation, name, id, sequence } = body
     console.log('[category-operations] Operation requested:', operation);
 
     switch (operation) {
       case 'getAll': {
         console.log('[category-operations] Fetching categories for user:', user.id);
-        // Get all categories with note counts for the user
+        // Get all categories with note counts for the user, ordered by sequence
         const { data, error } = await supabaseClient
           .from('categories')
           .select('*, notes(count)')
           .eq('user_id', user.id)
-          .order('name')
+          .order('sequence')
           .returns<Category[]>();
 
         if (error) {
@@ -197,6 +198,7 @@ serve(async (req) => {
               name: category.name,
               color: category.color,
               isSystem: category.is_system,
+              sequence: category.sequence,
               notesCount: category.notes?.[0]?.count || 0
             }))
           }),
@@ -211,20 +213,27 @@ serve(async (req) => {
         if (!name) throw new Error('Name is required')
         console.log('Creating new category with name:', name);
         
-        // Generate a unique color
-        console.log('Generating unique color...');
+        // Get max sequence number for user
+        const { data: maxSeq } = await supabaseClient
+          .from('categories')
+          .select('sequence')
+          .eq('user_id', user.id)
+          .order('sequence', { ascending: false })
+          .limit(1)
+          .single();
+
+        const nextSequence = (maxSeq?.sequence || 0) + 1;
         const color = await generateUniqueColor(supabaseClient, user.id);
-        console.log('Generated color:', color);
         
-        // Create the category
-        console.log('Creating category in database...');
+        // Create category with next sequence number
         const { data, error } = await supabaseClient
           .from('categories')
           .insert({
             name,
             color,
             user_id: user.id,
-            is_system: false
+            is_system: false,
+            sequence: nextSequence
           })
           .select()
           .single()
@@ -237,6 +246,32 @@ serve(async (req) => {
         console.log('Successfully created category:', data);
         return new Response(
           JSON.stringify({ category: data }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        )
+      }
+
+      case 'updateSequence': {
+        if (!id || typeof sequence !== 'number') {
+          throw new Error('Category ID and sequence are required')
+        }
+
+        // Use the new stored procedure
+        const { error } = await supabaseClient.rpc('update_category_sequence', {
+          p_category_id: id,
+          p_new_sequence: sequence,
+          p_user_id: user.id
+        });
+
+        if (error) {
+          console.error('[category-operations] Error updating sequence:', error);
+          throw error;
+        }
+
+        return new Response(
+          JSON.stringify({ success: true }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200
@@ -322,7 +357,7 @@ serve(async (req) => {
       }
     )
   }
-})
+}
 
 /* To invoke locally:
 

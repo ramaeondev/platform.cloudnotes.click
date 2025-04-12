@@ -2,8 +2,9 @@ export interface Category {
   id: string;
   name: string;
   color: string; // Hex color string like #FFFFFF
+  isSystem: boolean;
+  sequence: number;
   notesCount?: number;
-  isSystem?: boolean;
 }
 
 export interface Folder {
