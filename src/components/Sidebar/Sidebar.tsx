@@ -1,4 +1,4 @@
-import React, { useState, FunctionComponent } from 'react';
+import React, { useState, FunctionComponent, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserFolders } from '../../services/folderService.ts';
 import { getUserCategories, createCategory, updateCategory, deleteCategory } from '../../services/categoryService.ts';
@@ -33,8 +33,7 @@ const Sidebar: FunctionComponent<SidebarProps> = ({
   selectedFolderId, 
   selectedCategoryId, 
   folders: propFolders,
-  categories: propCategories,
-  refetchCategories
+  categories: propCategories
 }) => {
   // State management
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
@@ -46,7 +45,7 @@ const Sidebar: FunctionComponent<SidebarProps> = ({
   const [editCategoryName, setEditCategoryName] = useState('');
   const queryClient = useQueryClient();
 
-  // Data fetching
+  // Data fetching - only if props are not provided
   const { 
     data: fetchedFolders = [], 
     isLoading: isFoldersLoading 
@@ -62,13 +61,21 @@ const Sidebar: FunctionComponent<SidebarProps> = ({
   } = useQuery({
     queryKey: ['categories'],
     queryFn: getUserCategories,
-    enabled: !propCategories
+    enabled: !propCategories // Only fetch if categories are not provided as props
   });
 
+  // Use prop values if available, otherwise use fetched data
   const folders = propFolders || fetchedFolders;
   const categories = propCategories || fetchedCategories;
   const isFoldersDataLoading = !propFolders && isFoldersLoading;
   const isCategoriesDataLoading = !propCategories && isCategoriesLoading;
+
+  // Log for debugging
+  useEffect(() => {
+    console.log('[Sidebar] Categories from props:', propCategories);
+    console.log('[Sidebar] Fetched categories:', fetchedCategories);
+    console.log('[Sidebar] Final categories:', categories);
+  }, [propCategories, fetchedCategories, categories]);
 
   // Event handlers
   const toggleFolder = (folderId: string) => {
@@ -89,15 +96,37 @@ const Sidebar: FunctionComponent<SidebarProps> = ({
     }
 
     try {
-      await createCategory(newCategoryName);
+      // Optimistically update the UI
+      const optimisticCategory = {
+        id: `temp-${Date.now()}`,
+        name: newCategoryName,
+        color: '#ffffff', // Temporary color
+        notesCount: 0,
+        isSystem: false
+      };
+
+      // Add to queryClient cache optimistically
+      queryClient.setQueryData(['categories'], (old: Category[] = []) => [...old, optimisticCategory]);
+
+      // Make the API call
+      const newCategory = await createCategory(newCategoryName);
+      
+      // Update with actual data
+      queryClient.setQueryData(['categories'], (old: Category[] = []) => 
+        old.map(cat => cat.id === optimisticCategory.id ? newCategory : cat)
+      );
+
       setNewCategoryName('');
       setIsNewCategoryDialogOpen(false);
-      refetchCategories?.(); // Refresh categories after creation
       toast({
         title: "Success",
         description: "Category created successfully",
       });
-    } catch (_error) {
+    } catch (error) {
+      // Revert optimistic update on error
+      queryClient.setQueryData(['categories'], (old: Category[] = []) => 
+        old.filter(cat => cat.id !== `temp-${Date.now()}`)
+      );
       toast({
         title: "Error",
         description: "Failed to create category",
@@ -108,17 +137,32 @@ const Sidebar: FunctionComponent<SidebarProps> = ({
 
   const handleUpdateCategory = async () => {
     if (!selectedCategory) return;
+    
+    const oldCategories = queryClient.getQueryData(['categories']) as Category[];
+    const oldCategory = selectedCategory;
+
     try {
+      // Optimistically update the UI
+      queryClient.setQueryData(['categories'], (old: Category[] = []) => 
+        old.map(cat => cat.id === selectedCategory.id 
+          ? { ...cat, name: editCategoryName }
+          : cat
+        )
+      );
+
+      // Make the API call
       await updateCategory(selectedCategory.id, editCategoryName);
+
       setEditCategoryName('');
       setSelectedCategory(null);
       setIsEditCategoryDialogOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast({
         title: "Success",
         description: "Category updated successfully",
       });
-    } catch (_error) {
+    } catch (error) {
+      // Revert optimistic update on error
+      queryClient.setQueryData(['categories'], oldCategories);
       toast({
         title: "Error",
         description: "Failed to update category",
@@ -129,16 +173,27 @@ const Sidebar: FunctionComponent<SidebarProps> = ({
 
   const handleDeleteCategory = async () => {
     if (!selectedCategory) return;
+    
+    const oldCategories = queryClient.getQueryData(['categories']) as Category[];
+
     try {
+      // Optimistically update the UI
+      queryClient.setQueryData(['categories'], (old: Category[] = []) => 
+        old.filter(cat => cat.id !== selectedCategory.id)
+      );
+
+      // Make the API call
       await deleteCategory(selectedCategory.id);
+
       setSelectedCategory(null);
       setIsDeleteCategoryDialogOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast({
         title: "Success",
         description: "Category deleted successfully",
       });
-    } catch (_error) {
+    } catch (error) {
+      // Revert optimistic update on error
+      queryClient.setQueryData(['categories'], oldCategories);
       toast({
         title: "Error",
         description: "Failed to delete category",
@@ -227,30 +282,22 @@ const Sidebar: FunctionComponent<SidebarProps> = ({
   };
 
   return (
-    <div className="h-full bg-sidebar text-sidebar-foreground flex flex-col">
-      {/* Sidebar Header */}
-      <div className="px-4 py-6">
-        <div className="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-cloud mr-2 text-primary">
-            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
-          </svg>
-          <h1 className="text-xl font-semibold">CloudNotes</h1>
-        </div>
-      </div>
-      
-      {/* Folders */}
-      <div className="p-4 flex-1 overflow-y-auto">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium text-sidebar-foreground/80">Folders</h3>
-          <button type="button" className="p-1 rounded hover:bg-sidebar-accent focus:outline-none">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus">
-              <path d="M12 5v14"/>
-              <path d="M5 12h14"/>
-            </svg>
-          </button>
+    <div className="flex flex-col h-full bg-sidebar">
+      {/* Folders section - 70% height */}
+      <div className="flex-[0.7] overflow-hidden flex flex-col">
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium text-sidebar-foreground/80">Folders</h3>
+            <button type="button" className="p-1 rounded hover:bg-sidebar-accent focus:outline-none">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus">
+                <path d="M12 5v14"/>
+                <path d="M5 12h14"/>
+              </svg>
+            </button>
+          </div>
         </div>
         
-        <div>
+        <div className="flex-1 overflow-y-auto px-4">
           {isFoldersDataLoading ? (
             <div className="flex justify-center p-4">
               <Loader size="sm" />
@@ -261,87 +308,70 @@ const Sidebar: FunctionComponent<SidebarProps> = ({
         </div>
       </div>
       
-      {/* Categories */}
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium text-sidebar-foreground/80">Categories</h3>
-          <button 
-            type="button" 
-            className="p-1 rounded hover:bg-sidebar-accent focus:outline-none"
-            onClick={() => setIsNewCategoryDialogOpen(true)}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus">
-              <path d="M12 5v14"/>
-              <path d="M5 12h14"/>
-            </svg>
-          </button>
+      {/* Categories section - 30% height */}
+      <div className="flex-[0.3] border-t border-sidebar-border min-h-[200px] flex flex-col">
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium text-sidebar-foreground/80">Categories</h3>
+            <button 
+              type="button" 
+              className="p-1 rounded hover:bg-sidebar-accent focus:outline-none"
+              onClick={() => setIsNewCategoryDialogOpen(true)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus">
+                <path d="M12 5v14"/>
+                <path d="M5 12h14"/>
+              </svg>
+            </button>
+          </div>
         </div>
         
-        <div className="space-y-1">
+        <div className="flex-1 overflow-y-auto px-4">
           {isCategoriesDataLoading ? (
             <div className="flex justify-center p-4">
               <Loader size="sm" />
             </div>
-          ) : (categories as Category[]).length > 0 ? (
-            (categories as Category[]).map((category: Category) => (
-              <div 
-                key={category.id}
-                onClick={() => onCategorySelect(category.id)}
-                className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-sidebar-accent ${
-                  selectedCategoryId === category.id ? 'bg-primary/10 text-primary' : ''
-                }`}
-              >
+          ) : categories.length > 0 ? (
+            <div className="space-y-1">
+              {categories.map((category: Category) => (
                 <div 
-                  className="w-6 h-6 rounded-full flex items-center justify-center relative"
-                  style={{ backgroundColor: category.color }}
+                  key={category.id}
+                  onClick={() => onCategorySelect(category.id)}
+                  className={`group flex items-center p-2 rounded-lg cursor-pointer hover:bg-sidebar-accent ${
+                    selectedCategoryId === category.id ? 'bg-primary/10 text-primary' : ''
+                  }`}
                 >
-                  {category.notesCount !== undefined && (
-                    <span className="text-xs font-medium text-black">
-                      {category.notesCount}
+                  <span className="truncate flex-1">{category.name}</span>
+                  <div 
+                    className="w-4 h-4 rounded-full ml-2"
+                    style={{ backgroundColor: category.color }}
+                  />
+                  {!category.isSystem && (
+                    <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCategory(category);
+                          setEditCategoryName(category.name);
+                          setIsEditCategoryDialogOpen(true);
+                        }}
+                        className="p-1 rounded hover:bg-sidebar-accent/50"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                  {category.isSystem && (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">
+                      System
                     </span>
                   )}
                 </div>
-                <span className="truncate flex-1">{category.name}</span>
-                {!category.isSystem && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedCategory(category);
-                        setEditCategoryName(category.name);
-                        setIsEditCategoryDialogOpen(true);
-                      }}
-                      className="p-1 rounded hover:bg-sidebar-accent/50"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/>
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedCategory(category);
-                        setIsDeleteCategoryDialogOpen(true);
-                      }}
-                      className="p-1 rounded hover:bg-sidebar-accent/50 text-red-400 hover:text-red-500"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 6h18"/>
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                      </svg>
-                    </button>
-                  </div>
-                )}
-                {category.isSystem && (
-                  <span className="ml-1 inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">
-                    System
-                  </span>
-                )}
-              </div>
-            ))
+              ))}
+            </div>
           ) : (
             <div className="p-4 text-sidebar-foreground/70 text-sm text-center">
               <div className="w-3 h-3 rounded-full mb-2 bg-blue-500 mx-auto"></div>

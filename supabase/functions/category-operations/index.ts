@@ -4,7 +4,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
+import { createClient, SupabaseClient, PostgrestError } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 import { corsHeaders } from '../_shared/cors.ts'
 
 interface Category {
@@ -13,12 +13,21 @@ interface Category {
   color: string
   is_system: boolean
   user_id: string
+  notes?: Array<{ count: number }>
 }
 
 interface HSL {
   h: number // hue (0-360)
   s: number // saturation (0-100)
   l: number // lightness (0-100)
+}
+
+interface CategoryResponse {
+  id: string;
+  name: string;
+  color: string;
+  is_system: boolean;
+  notes: Array<{ count: number }>;
 }
 
 function hslToHex({ h, s, l }: HSL): string {
@@ -79,7 +88,7 @@ function generateRandomHSL(existingHues: number[] = []): HSL {
   return result;
 }
 
-async function generateUniqueColor(supabaseClient: any, userId: string): Promise<string> {
+async function generateUniqueColor(supabaseClient: SupabaseClient, userId: string): Promise<string> {
   // Get existing category colors for the user
   const { data: existingCategories, error: categoriesError } = await supabaseClient
     .from('categories')
@@ -93,9 +102,9 @@ async function generateUniqueColor(supabaseClient: any, userId: string): Promise
 
   // Extract existing hues from hex colors
   const existingHues = existingCategories
-    .map(cat => cat.color)
-    .filter((color): color is string => typeof color === 'string')
-    .map(color => {
+    .map((cat: { color: string }) => cat.color)
+    .filter((color: string): color is string => typeof color === 'string')
+    .map((color: string) => {
       console.log('Processing color:', color);
       // Convert hex to RGB
       const r = parseInt(color.slice(1, 3), 16) / 255;
@@ -135,6 +144,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('[category-operations] Request received:', req.method);
+    
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -144,36 +155,41 @@ serve(async (req) => {
     // Get the authorization header from the request
     const authHeader = req.headers.get('Authorization')?.split(' ')[1]
     if (!authHeader) {
+      console.error('[category-operations] No authorization header');
       throw new Error('No authorization header')
     }
 
     // Get the user from the auth header
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(authHeader)
     if (userError || !user) {
+      console.error('[category-operations] Invalid user:', userError);
       throw new Error('Invalid user')
     }
+    console.log('[category-operations] User authenticated:', user.id);
 
     // Parse request body once
     const body = await req.json()
     const { operation, name, id } = body
+    console.log('[category-operations] Operation requested:', operation);
 
     switch (operation) {
       case 'getAll': {
+        console.log('[category-operations] Fetching categories for user:', user.id);
         // Get all categories with note counts for the user
         const { data, error } = await supabaseClient
           .from('categories')
-          .select(`
-            id,
-            name,
-            color,
-            is_system,
-            notes:notes(count)
-          `)
+          .select('*, notes(count)')
           .eq('user_id', user.id)
           .order('name')
+          .returns<Category[]>();
 
-        if (error) throw error
+        if (error) {
+          const pgError = error as PostgrestError;
+          console.error('[category-operations] Error fetching categories:', pgError);
+          throw new Error(pgError.message);
+        }
 
+        console.log('[category-operations] Categories fetched:', data?.length);
         return new Response(
           JSON.stringify({
             categories: data.map(category => ({

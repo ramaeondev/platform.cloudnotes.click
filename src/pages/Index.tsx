@@ -1,6 +1,5 @@
-
 import React from 'react';
-import AppLayout from '../components/Layout/AppLayout';
+import AppLayout from '../components/Layout/AppLayout.tsx';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {

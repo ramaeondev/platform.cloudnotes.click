@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,8 +10,24 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
+  console.log('[ProtectedRoute] Rendering with:', {
+    isAuthenticated,
+    isLoading,
+    pathname: location.pathname,
+    timestamp: new Date().toISOString()
+  });
+
+  useEffect(() => {
+    console.log('[ProtectedRoute] Auth state changed:', {
+      isAuthenticated,
+      isLoading,
+      pathname: location.pathname,
+      timestamp: new Date().toISOString()
+    });
+  }, [isAuthenticated, isLoading, location.pathname]);
+
   if (isLoading) {
-    // We could add a loading spinner here
+    console.log('[ProtectedRoute] Showing loading spinner');
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -21,10 +36,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    // Redirect to the signin page, but save the current location
+    console.log('[ProtectedRoute] Not authenticated, redirecting to signin');
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
+  console.log('[ProtectedRoute] Authenticated, rendering children');
   return <>{children}</>;
 };
 

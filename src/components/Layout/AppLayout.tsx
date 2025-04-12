@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Sidebar from '../Sidebar/Sidebar.jsx';
 import NoteList from '../NoteList/NoteList.tsx';
 import Editor from '../Editor/Editor.jsx';
@@ -20,6 +20,9 @@ import { getUserCategories } from '../../services/categoryService.ts';
 import { getNotesByFolder } from '../../services/noteService.ts';
 import { Note } from '../../lib/types.ts';
 
+// --- ADDED LOG ---
+console.log('[AppLayout Module] File loaded.');
+
 const AppLayout = () => {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
@@ -29,26 +32,127 @@ const AppLayout = () => {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  console.log('[AppLayout] Rendering. User:', user);
+
+  // Add logging for user state changes
+  useEffect(() => {
+    console.log('[AppLayout] User state changed:', {
+      userId: user?.id,
+      isAuthenticated: !!user,
+      email: user?.email,
+      timestamp: new Date().toISOString()
+    });
+  }, [user]);
+
+  // Reset queries when user changes
+  useEffect(() => {
+    console.log('[AppLayout] Running query reset effect. User exists:', !!user, 'Timestamp:', new Date().toISOString());
+    if (!user) {
+      console.log('[AppLayout] Clearing queries - user logged out');
+      queryClient.clear();
+    } else {
+      console.log('[AppLayout] User is authenticated, invalidating queries');
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      
+      // Force immediate refetch
+      console.log('[AppLayout] Forcing immediate refetch of all queries');
+      Promise.all([
+        queryClient.refetchQueries({ queryKey: ['categories'] }),
+        queryClient.refetchQueries({ queryKey: ['folders'] }),
+        queryClient.refetchQueries({ queryKey: ['notes'] })
+      ]).then(() => {
+        console.log('[AppLayout] All queries refetched successfully');
+      }).catch(error => {
+        console.error('[AppLayout] Error refetching queries:', error);
+      });
+    }
+  }, [user, queryClient]);
 
   // Data fetching
   const { 
     data: folders = [], 
-    isLoading: isFoldersLoading 
+    isLoading: isFoldersLoading,
+    error: foldersError 
   } = useQuery({
     queryKey: ['folders'],
     queryFn: getUserFolders,
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 0 // Always refetch on mount
   });
 
+  // Log folders query state
+  useEffect(() => {
+    if (isFoldersLoading) {
+      console.log('[AppLayout] Folders query is loading');
+    } else if (foldersError) {
+      console.error('[AppLayout] Folders query error:', foldersError);
+    } else if (folders) {
+      console.log('[AppLayout] Folders query succeeded:', folders);
+    }
+  }, [folders, isFoldersLoading, foldersError]);
+
+  console.log('[AppLayout] Before categories useQuery. User:', user?.id, 'Enabled:', !!user);
+
+  // Update categories query configuration
   const {
     data: categories = [],
     isLoading: isCategoriesLoading,
-    refetch: refetchCategories
+    refetch: refetchCategories,
+    error: categoriesError
   } = useQuery({
     queryKey: ['categories'],
-    queryFn: getUserCategories,
-    enabled: !!user
+    queryFn: async () => {
+      console.log('[AppLayout] Categories queryFn executing. User:', user?.id, 'Timestamp:', new Date().toISOString());
+      try {
+        console.log('[AppLayout] Calling getUserCategories...');
+        const data = await getUserCategories();
+        console.log('[AppLayout] Categories fetched successfully:', data);
+        return data;
+      } catch (error) {
+        console.error('[AppLayout] Categories query error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load categories. Please try again.",
+          variant: "destructive",
+        });
+        throw error;
+      }
+    },
+    enabled: !!user,
+    refetchOnMount: 'always' as const,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    staleTime: 0,
+    gcTime: 0,
+    retry: 3
   });
+
+  // Log query state changes
+  useEffect(() => {
+    if (isCategoriesLoading) {
+      console.log('[AppLayout] Categories query is loading');
+    } else if (categoriesError) {
+      console.error('[AppLayout] Categories query error:', categoriesError);
+    } else if (categories) {
+      console.log('[AppLayout] Categories query succeeded:', categories);
+    }
+  }, [categories, isCategoriesLoading, categoriesError]);
+
+  // Log categories data for debugging
+  useEffect(() => {
+    console.log('[AppLayout] Categories state update:', {
+      data: categories,
+      loading: isCategoriesLoading,
+      error: categoriesError,
+      timestamp: new Date().toISOString()
+    });
+  }, [categories, isCategoriesLoading, categoriesError]);
+
+  console.log('[AppLayout] After categories useQuery. isLoading:', isCategoriesLoading, 'Enabled:', !!user);
 
   const {
     data: notes = [],
@@ -109,6 +213,8 @@ const AppLayout = () => {
   
   const handleSignOut = async () => {
     try {
+      // Clear all queries before signing out
+      queryClient.clear();
       await signOut();
       toast({
         title: "Signed out",
@@ -185,7 +291,6 @@ const AppLayout = () => {
           selectedCategoryId={selectedCategoryId}
           folders={folders}
           categories={categories}
-          refetchCategories={refetchCategories}
         />
       </div>
 
