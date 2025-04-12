@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -8,9 +8,15 @@ import { toast } from '../../hooks/use-toast.ts';
 import { createCategory, updateCategory, deleteCategory, updateCategorySequence } from '../../services/categoryService.ts';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '../ui/alert-dialog.tsx';
 import { Input } from '../ui/input.tsx';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu.tsx";
 
 // SortableItem component for drag-and-drop
-function SortableItem({ category, selectedCategoryId, onSelect, onMenuClick }) {
+function SortableItem({ category, selectedCategoryId, onSelect, onEditClick, onDeleteClick }) {
   const {
     attributes,
     listeners,
@@ -27,9 +33,10 @@ function SortableItem({ category, selectedCategoryId, onSelect, onMenuClick }) {
     transition,
   };
 
-  const handleMenuClick = (e) => {
-    e.stopPropagation(); // Prevent triggering the category selection
-    onMenuClick(category);
+  const handleCategoryClick = (e) => {
+    // Ensure click works even for draggable items
+    console.log('Category clicked:', category.name);
+    onSelect(category.id);
   };
 
   return (
@@ -38,13 +45,13 @@ function SortableItem({ category, selectedCategoryId, onSelect, onMenuClick }) {
         className={`group flex items-center justify-between py-1.5 px-2 rounded-lg cursor-pointer hover:bg-sidebar-accent text-sm ${
           selectedCategoryId === category.id ? 'bg-primary/10 text-white' : 'text-white'
         }`}
-        onClick={() => onSelect(category.id)}
+        onClick={handleCategoryClick}
       >
         {/* Left aligned category name */}
         <span className="truncate text-sm text-white">{category.name}</span>
         
         {/* Right aligned color circle and kebab menu */}
-        <div className="flex items-center">
+        <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
           <div 
             className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium text-white mr-2"
             style={{ backgroundColor: category.color }}
@@ -52,17 +59,72 @@ function SortableItem({ category, selectedCategoryId, onSelect, onMenuClick }) {
             {category.notesCount || 0}
           </div>
           
-          <button
-            type="button"
-            onClick={handleMenuClick}
-            className="p-1.5 rounded-md hover:bg-sidebar-accent/50 focus:outline-none text-white"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="1" />
-              <circle cx="12" cy="5" r="1" />
-              <circle cx="12" cy="19" r="1" />
-            </svg>
-          </button>
+          {category.isSystem ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toast({
+                  title: "System Category",
+                  description: "Default categories cannot be edited or deleted",
+                  variant: "default",
+                });
+              }}
+              className="p-1.5 rounded-md hover:bg-sidebar-accent/50 focus:outline-none text-white"
+              aria-label="Menu"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="1" />
+                <circle cx="12" cy="5" r="1" />
+                <circle cx="12" cy="19" r="1" />
+              </svg>
+            </button>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="p-1.5 rounded-md hover:bg-sidebar-accent/50 focus:outline-none text-white"
+                  aria-label="Menu"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="1" />
+                    <circle cx="12" cy="5" r="1" />
+                    <circle cx="12" cy="19" r="1" />
+                  </svg>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-32 bg-sidebar z-50 border border-sidebar-border" align="end">
+                <DropdownMenuItem 
+                  onClick={() => onEditClick(category)}
+                  className="cursor-pointer text-white hover:bg-sidebar-accent"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                    <path d="m15 5 4 4"/>
+                  </svg>
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => onDeleteClick(category)}
+                  className="cursor-pointer hover:bg-sidebar-accent"
+                  style={{
+                    color: '#ef4444', /* Brighter red */
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                    <path d="M3 6h18"/>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  </svg>
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
     </div>
@@ -84,7 +146,13 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
   const queryClient = useQueryClient();
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      // Require a more deliberate drag gesture to start dragging
+      activationConstraint: {
+        distance: 8, // 8px of movement required before drag starts
+        delay: 150, // Wait 150ms before starting drag
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -171,7 +239,17 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
   };
 
   const handleDeleteCategory = async () => {
-    if (!selectedCategory) return;
+    if (!selectedCategory) {
+      console.error('No category selected for deletion');
+      toast({
+        title: "Error",
+        description: "No category selected for deletion",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log('Deleting category:', selectedCategory.name, 'with ID:', selectedCategory.id);
     
     try {
       await deleteCategory(selectedCategory.id);
@@ -182,10 +260,11 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
         title: "Success",
         description: "Category deleted successfully",
       });
-    } catch (_error) {
+    } catch (error) {
+      console.error('Error deleting category:', error);
       toast({
         title: "Error",
-        description: "Failed to delete category",
+        description: error.message || "Failed to delete category",
         variant: "destructive",
       });
     }
@@ -228,30 +307,49 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
   };
 
   const handleCategorySelect = (categoryId) => {
+    console.log('Category selected with ID:', categoryId);
+    // Call the parent component's handler with the category ID
     onCategorySelect(categoryId);
   };
 
   const handleKebabMenuClick = (category) => {
+    console.log('Edit clicked for category:', category.name);
     setSelectedCategory(category);
-    
-    if (category.isSystem) {
-      // For system categories, show toast message but don't open edit/delete dialogs
-      toast({
-        title: "System Category",
-        description: "Default categories cannot be edited or deleted",
-        variant: "default",
-      });
-    } else {
-      // For regular categories, show edit dialog with options
-      setEditCategoryName(category.name);
-      setIsEditCategoryDialogOpen(true);
-    }
+    setEditCategoryName(category.name);
+    setIsEditCategoryDialogOpen(true);
+  };
+  
+  const handleCategoryDeleteClick = (category) => {
+    console.log('Delete clicked for category:', category.name);
+    setSelectedCategory(category);
+    setIsDeleteCategoryDialogOpen(true);
   };
 
   // Function to handle deletion from the edit dialog
   const handleDeleteFromEditDialog = () => {
+    console.log('Delete button clicked in edit dialog');
     setIsEditCategoryDialogOpen(false);
-    setIsDeleteCategoryDialogOpen(true);
+    
+    // Short timeout to ensure state updates properly between dialog transitions
+    setTimeout(() => {
+      setIsDeleteCategoryDialogOpen(true);
+      console.log('Delete confirmation dialog should open now');
+    }, 50);
+  };
+
+  // Custom CSS for delete buttons
+  const deleteButtonStyle = {
+    backgroundColor: '#dc2626',
+    color: 'white',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.375rem',
+    fontWeight: '500',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid #b91c1c',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+    cursor: 'pointer'
   };
 
   return (
@@ -328,12 +426,17 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto px-3">
+        <div className="flex-1 overflow-y-auto px-3 custom-scrollbar">
           {categories?.length > 0 ? (
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleDndDragEnd}
+              measuring={{
+                droppable: {
+                  strategy: 'always'
+                },
+              }}
             >
               <SortableContext
                 items={categories.map(cat => cat.id)}
@@ -341,13 +444,14 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
               >
                 <div className="space-y-1">
                   {categories.map((category, index) => (
-                    <div key={category.id}>
+                    <div key={category.id} className="category-item">
                       {index > 0 && <div className="h-[1px] w-full bg-sidebar-border/60 my-1"></div>}
                       <SortableItem
                         category={category}
                         selectedCategoryId={selectedCategoryId}
                         onSelect={handleCategorySelect}
-                        onMenuClick={handleKebabMenuClick}
+                        onEditClick={handleKebabMenuClick}
+                        onDeleteClick={handleCategoryDeleteClick}
                       />
                     </div>
                   ))}
@@ -399,9 +503,11 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
       <AlertDialog 
         open={isEditCategoryDialogOpen} 
         onOpenChange={(open) => {
+          console.log('Edit dialog open state changing to:', open);
           setIsEditCategoryDialogOpen(open);
           if (!open) {
             setSelectedCategory(null);
+            setEditCategoryName('');
           }
         }}
       >
@@ -409,7 +515,7 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
           <AlertDialogHeader>
             <AlertDialogTitle>Edit Category</AlertDialogTitle>
             <AlertDialogDescription>
-              Update the category name.
+              {selectedCategory?.name ? `Update "${selectedCategory.name}" category` : 'Update category name'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
@@ -418,23 +524,64 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
               onChange={(e) => setEditCategoryName(e.target.value)}
               placeholder="Category name"
               className="w-full"
+              autoFocus
             />
           </div>
           <AlertDialogFooter className="flex justify-between">
             <div>
               <AlertDialogAction 
-                onClick={handleDeleteFromEditDialog} 
-                className="bg-red-500 hover:bg-red-600"
+                onClick={handleDeleteFromEditDialog}
+                className="text-white font-medium"
+                style={{
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  padding: '0.5rem 1.25rem',
+                  border: '2px solid #b91c1c',
+                  borderRadius: '0.375rem',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1rem',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
               >
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="16" 
+                  height="16" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  className="mr-2"
+                >
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
                 Delete
               </AlertDialogAction>
             </div>
             <div className="flex space-x-2">
-              <AlertDialogCancel onClick={() => {
-                setEditCategoryName('');
-                setSelectedCategory(null);
-                setIsEditCategoryDialogOpen(false);
-              }}>
+              <AlertDialogCancel 
+                onClick={() => {
+                  setEditCategoryName('');
+                  setSelectedCategory(null);
+                  setIsEditCategoryDialogOpen(false);
+                }}
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#94a3b8',
+                  border: '1px solid #334155',
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '0.375rem',
+                  fontWeight: '400'
+                }}
+              >
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction onClick={handleUpdateCategory}>
@@ -449,8 +596,10 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
       <AlertDialog 
         open={isDeleteCategoryDialogOpen} 
         onOpenChange={(open) => {
+          console.log('Delete dialog open state changing to:', open);
           setIsDeleteCategoryDialogOpen(open);
-          if (!open) {
+          if (!open && !isEditCategoryDialogOpen) {
+            // Only clear selected category if we're not going back to the edit dialog
             setSelectedCategory(null);
           }
         }}
@@ -459,16 +608,64 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Category</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this category? This action cannot be undone.
+              {selectedCategory?.name 
+                ? `Are you sure you want to delete "${selectedCategory.name}"? This action cannot be undone.` 
+                : 'Are you sure you want to delete this category? This action cannot be undone.'}
             </AlertDialogDescription>
+            <div className="mt-2 text-sm text-gray-500 border-l-4 border-amber-500 pl-3 py-2 bg-amber-50/10">
+              <p>All notes under this category will be moved to the default category.</p>
+            </div>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setIsDeleteCategoryDialogOpen(false);
-            }}>
+          <AlertDialogFooter className="flex justify-end space-x-2 mt-4">
+            <AlertDialogCancel 
+              onClick={() => {
+                setIsDeleteCategoryDialogOpen(false);
+              }}
+              style={{
+                backgroundColor: 'transparent',
+                color: '#94a3b8',
+                border: '1px solid #334155',
+                padding: '0.5rem 1.25rem',
+                borderRadius: '0.375rem',
+                fontWeight: '400'
+              }}
+            >
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteCategory} className="bg-red-500 hover:bg-red-600">
+            <AlertDialogAction 
+              onClick={handleDeleteCategory} 
+              className="text-white font-medium"
+              style={{
+                backgroundColor: '#dc2626',
+                color: 'white',
+                padding: '0.5rem 1.25rem',
+                border: '2px solid #b91c1c',
+                borderRadius: '0.375rem',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1rem',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="16" 
+                height="16" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="mr-2"
+              >
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+              </svg>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
