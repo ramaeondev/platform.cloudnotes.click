@@ -1,139 +1,113 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js";
+import { S3Client, PutObjectCommand } from "npm:@aws-sdk/client-s3";
 
-// supabase/functions/create-newuser-folder/index.ts
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { S3Client, PutObjectCommand, ListObjectsV2Command } 
-  from "https://deno.land/x/aws_sdk@v3.32.0-1/client-s3/mod.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+// Response helper with CORS
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
-serve(async (req) => {
+type ErrorResponse = {
+  message: string;
+  details?: Record<string, unknown>;
+};
+
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL"),
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") // Needed for DB inserts
+);
+
+const s3 = new S3Client({
+  region: Deno.env.get("AWS_REGION"),
+  credentials: {
+    accessKeyId: Deno.env.get("AWS_ACCESS_KEY_ID"),
+    secretAccessKey: Deno.env.get("AWS_SECRET_ACCESS_KEY"),
+  },
+});
+
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { 
-      status: 204,
-      headers: corsHeaders 
-    });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
-  // Add CORS headers to response
-  const headers = {
-    ...corsHeaders,
-    "Content-Type": "application/json"
-  };
-
-  console.log("Environment variables:", {
-    bucket: Deno.env.get("S3_BUCKET") || "NULL",
-    region: Deno.env.get("AWS_REGION") || "NULL",
-    hasAccessKey: !!Deno.env.get("AWS_ACCESS_KEY_ID"),
-    hasSecretKey: !!Deno.env.get("AWS_SECRET_ACCESS_KEY")
-  });
-
+  // Only allow POST requests
   if (req.method !== "POST") {
     return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      { 
-        status: 405,
-        headers
-      }
+      JSON.stringify({ message: "Method not allowed" } as ErrorResponse),
+      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  const jwt = req.headers.get("Authorization")?.replace("Bearer ", "");
+  if (!jwt) {
+    return new Response(
+      JSON.stringify({ message: "Unauthorized - No JWT provided" } as ErrorResponse),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 
-  try {
-    const body = await req.json();
-    const uuid = body?.uuid;
-
-    if (!uuid) {
-      return new Response(
-        JSON.stringify({ error: "UUID is required" }),
-        { 
-          status: 400,
-          headers
-        }
-      );
-    }
-
-    const bucket = Deno.env.get("S3_BUCKET");
-    const region = Deno.env.get("AWS_REGION");
-    const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
-    const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
-
-    // Check for required environment variables
-    if (!bucket || !region || !accessKeyId || !secretAccessKey) {
-      console.error("Missing required environment variables:", {
-        bucket: !!bucket,
-        region: !!region,
-        accessKeyId: !!accessKeyId,
-        secretAccessKey: !!secretAccessKey
-      });
-      
-      return new Response(
-        JSON.stringify({ error: "Missing required environment variables" }),
-        {
-          status: 500,
-          headers
-        }
-      );
-    }
-
-    const s3Client = new S3Client({
-      region,
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
-    });
-
-    const folderKey = `${uuid}/`;
-    console.log("Creating folder with key:", folderKey);
-
-    // Check if folder already exists
-    const check = new ListObjectsV2Command({
-      Bucket: bucket,
-      Prefix: folderKey,
-      MaxKeys: 1,
-    });
-
-    console.log("Checking if folder exists...");
-    const result = await s3Client.send(check);
-    console.log("Check result:", result);
-
-    if (result.Contents && result.Contents.length > 0) {
-      console.log("Folder already exists");
-      return new Response(
-        JSON.stringify({ message: "Folder already exists", folder: folderKey }),
-        {
-          status: 200,
-          headers
-        }
-      );
-    }
-
-    // Upload empty object to simulate folder
-    const createFolder = new PutObjectCommand({
-      Bucket: bucket,
-      Key: folderKey,
-      Body: "",
-    });
-
-    console.log("Creating folder...");
-    const createResult = await s3Client.send(createFolder);
-    console.log("Create result:", createResult);
-
+  const { data: user, error } = await supabase.auth.getUser(jwt);
+  if (error || !user) {
     return new Response(
-      JSON.stringify({ success: true, message: "Folder created", folder: folderKey }),
-      {
-        status: 201,
-        headers
-      }
-    );
-  } catch (error: any) {
-    console.error("S3 folder creation error:", error);
-
-    return new Response(
-      JSON.stringify({ error: "Failed to create folder", details: error.message }),
-      {
-        status: 500,
-        headers
-      }
+      JSON.stringify({ 
+        message: "Invalid token",
+        details: error?.message
+      } as ErrorResponse),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
+
+  const userId = user.id;
+  const folderPath = `users/${userId}/`;
+
+  // OPTIONAL: Check if folder entry already exists in Supabase
+  const { data: existing } = await supabase
+    .from("folders")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("is_root", true)
+    .maybeSingle();
+
+  if (existing) {
+    return new Response(
+      JSON.stringify({ message: "Folder already exists" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // Create a placeholder object in S3 to simulate folder
+  const putCmd = new PutObjectCommand({
+    Bucket: Deno.env.get("AWS_BUCKET_NAME"),
+    Key: `${folderPath}.keep`,
+    Body: "",
+  });
+
+  await s3.send(putCmd);
+
+  // Insert metadata into Supabase folders table
+  const { error: insertError } = await supabase.from("folders").insert({
+    user_id: userId,
+    path: folderPath,
+    name: "root",
+    is_root: true,
+    metadata: { origin: "auto-created" },
+  });
+
+  if (insertError) {
+    return new Response(
+      JSON.stringify({ 
+        message: "Error inserting folder metadata",
+        details: insertError
+      } as ErrorResponse),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  return new Response(
+    JSON.stringify({ 
+      message: "Folder created successfully",
+      path: folderPath
+    }),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
 });

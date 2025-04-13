@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
+import useCreateUserFolder from '@/hooks/useCreateUserFolder';
+import { AuthError } from '@supabase/supabase-js';
+import { PostgrestError } from '@supabase/supabase-js';
 
 const ConfirmEmail = () => {
   const [isConfirming, setIsConfirming] = useState(true);
@@ -12,6 +15,7 @@ const ConfirmEmail = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { createUserFolder } = useCreateUserFolder();
 
   useEffect(() => {
     const confirmEmail = async () => {
@@ -29,6 +33,9 @@ const ConfirmEmail = () => {
             setIsSuccess(true);
             console.log('User session:', data.session);
             
+            // Create user folder after email confirmation
+            await createUserFolder();
+            
             toast({
               title: "Email confirmed",
               description: "Your email has been successfully verified.",
@@ -37,12 +44,12 @@ const ConfirmEmail = () => {
             setIsConfirming(false);
             throw new Error("No user session found");
           }
-        } catch (error: any) {
+        } catch (error) {
           console.error('Error confirming email:', error);
           setIsConfirming(false);
           toast({
             title: "Confirmation failed",
-            description: error.message || "There was an error confirming your email.",
+            description: (error as Error | AuthError | PostgrestError).message || "There was an error confirming your email.",
             variant: "destructive",
           });
         }
@@ -78,15 +85,18 @@ const ConfirmEmail = () => {
           setIsConfirming(false);
           setIsSuccess(true);
 
+          // Create user folder after email confirmation
+          await createUserFolder();
+
           toast({
             title: "Email confirmed",
             description: "Your email has been successfully verified.",
           });
-        } catch (error: any) {
+        } catch (error) {
           console.error('Error confirming email:', error);
           toast({
             title: "Confirmation failed",
-            description: error.message || "There was an error confirming your email.",
+            description: (error as Error | AuthError | PostgrestError).message || "There was an error confirming your email.",
             variant: "destructive",
           });
           setIsConfirming(false);
@@ -95,7 +105,7 @@ const ConfirmEmail = () => {
     };
 
     confirmEmail();
-  }, [location.search, location.hash]);
+  }, [location.search, location.hash, createUserFolder]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-cloudnotes-blue-light p-4">
