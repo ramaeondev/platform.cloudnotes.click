@@ -75,39 +75,33 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Create a placeholder object in S3 to simulate folder
-  const putCmd = new PutObjectCommand({
-    Bucket: Deno.env.get("AWS_BUCKET_NAME"),
-    Key: `${folderPath}.keep`,
-    Body: "",
-  });
+  try {
+    // Create a placeholder object in S3 to simulate folder
+    const putCmd = new PutObjectCommand({
+      Bucket: Deno.env.get("AWS_BUCKET_NAME"),
+      Key: `${folderPath}.keep`,
+      Body: "",
+    });
 
-  await s3.send(putCmd);
+    await s3.send(putCmd);
 
-  // Insert metadata into Supabase folders table
-  const { error: insertError } = await supabase.from("folders").insert({
-    user_id: userId,
-    path: folderPath,
-    name: "root",
-    is_root: true,
-    metadata: { origin: "auto-created" },
-  });
-
-  if (insertError) {
     return new Response(
       JSON.stringify({ 
-        message: "Error inserting folder metadata",
-        details: insertError
+        message: "Folder created successfully",
+        path: folderPath
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error('Error creating S3 folder:', error);
+    return new Response(
+      JSON.stringify({ 
+        message: "Failed to create S3 folder",
+        details: error
       } as ErrorResponse),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 
-  return new Response(
-    JSON.stringify({ 
-      message: "Folder created successfully",
-      path: folderPath
-    }),
-    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
+
 });
