@@ -1,32 +1,37 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/hooks/useProfile';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { isLoading: isProfileLoading } = useProfile();
   const location = useLocation();
 
   console.log('[ProtectedRoute] Rendering with:', {
-    isAuthenticated,
-    isLoading,
+    user,
+    isAuthLoading,
+    isProfileLoading,
     pathname: location.pathname,
     timestamp: new Date().toISOString()
   });
 
   useEffect(() => {
     console.log('[ProtectedRoute] Auth state changed:', {
-      isAuthenticated,
-      isLoading,
+      user,
+      isAuthLoading,
+      isProfileLoading,
       pathname: location.pathname,
       timestamp: new Date().toISOString()
     });
-  }, [isAuthenticated, isLoading, location.pathname]);
+  }, [user, isAuthLoading, isProfileLoading, location.pathname]);
 
-  if (isLoading) {
+  // Show loading state while checking auth and profile
+  if (isAuthLoading || isProfileLoading) {
     console.log('[ProtectedRoute] Showing loading spinner');
     return (
       <div className="flex h-screen items-center justify-center">
@@ -35,11 +40,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  // Redirect to sign in if not authenticated
+  if (!user) {
     console.log('[ProtectedRoute] Not authenticated, redirecting to signin');
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
+  // Render the protected content
   console.log('[ProtectedRoute] Authenticated, rendering children');
   return <>{children}</>;
 };

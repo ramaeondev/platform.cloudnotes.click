@@ -41,3 +41,15 @@ export interface User {
   email: string;
   avatarUrl?: string;
 }
+
+export interface ProfileModel {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  is_initial_setup_completed: boolean;
+  updated_at: string | null;
+  created_at: string | null;
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Sidebar from '../Sidebar/Sidebar.jsx';
 import NoteList from '../NoteList/NoteList.tsx';
@@ -19,6 +19,8 @@ import { getUserFolders } from '../../services/folderService.ts';
 import { getUserCategories } from '../../services/categoryService.ts';
 import { getNotesByFolder } from '../../services/noteService.ts';
 import { Note } from '../../lib/types.ts';
+import { supabase } from '../../integrations/supabase/client';
+import { SUPABASE_URL } from '../../lib/env';
 
 // --- ADDED LOG ---
 console.log('[AppLayout Module] File loaded.');
@@ -32,6 +34,7 @@ const AppLayout = () => {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   console.log('[AppLayout] Rendering. User:', user);
@@ -108,10 +111,8 @@ const AppLayout = () => {
     queryFn: async () => {
       console.log('[AppLayout] Categories queryFn executing. User:', user?.id, 'Timestamp:', new Date().toISOString());
       try {
-        console.log('[AppLayout] Calling getUserCategories...');
-        const data = await getUserCategories();
-        console.log('[AppLayout] Categories fetched successfully:', data);
-        return data;
+        console.log('[AppLayout] Skipping getUserCategories call temporarily.');
+        return [];
       } catch (error) {
         console.error('[AppLayout] Categories query error:', error);
         toast({
@@ -275,6 +276,43 @@ const AppLayout = () => {
     
     return 'U';
   };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: user } = await supabase.auth.getUser();
+      if (user) {
+        if (!user?.id) {
+          console.error('User ID is missing');
+          return;
+        }
+
+        const session = (await supabase.auth.getSession()).data.session;
+        if (!session?.access_token) {
+          console.error('No access token available');
+          return;
+        }
+
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/profile-operations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ id: user.id }),
+        });
+
+        if (response.ok) {
+          const profile = await response.json();
+          setUserProfile(profile);
+          setIsInitialSetupCompleted(profile.is_initial_setup_completed);
+        } else {
+          console.error('Failed to fetch profile');
+        }
+      }
+    };
+
+    fetchProfile();
+  }, [location.pathname]);
 
   if (isPageLoading) {
     return <PageLoader />;

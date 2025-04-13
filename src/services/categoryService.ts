@@ -1,7 +1,6 @@
 import { supabase } from "../integrations/supabase/client.ts";
+import { SUPABASE_URL } from "../lib/env.ts";
 import { Category } from "../lib/types.ts";
-
-const SUPABASE_URL = "https://gyyhnbzekafnvxflhlni.supabase.co";
 
 interface CategoryOperation<T> {
   operation: 'getAll' | 'create' | 'update' | 'delete' | 'updateSequence';

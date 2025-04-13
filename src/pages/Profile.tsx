@@ -1,83 +1,139 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "@/hooks/use-toast";
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.tsx";
+import { Avatar, AvatarFallback } from "../components/ui/avatar.tsx";
+import { Button } from "../components/ui/button.tsx";
+import { Input } from "../components/ui/input.tsx";
+import { Label } from "../components/ui/label.tsx";
+import { Checkbox } from "../components/ui/checkbox.tsx";
+import { toast } from "../hooks/use-toast.ts";
+import { useAuth } from '../contexts/AuthContext.tsx';
+import { supabase } from "../integrations/supabase/client.ts";
+import { useProfile } from '../hooks/useProfile.ts';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const { data: profile, isLoading: isProfileLoading } = useProfile();
+  
+  // State for form fields
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
 
+  // Update state when profile data loads or user changes
   useEffect(() => {
-    if (user) {
-      // Fetch profile information
-      const fetchProfile = async () => {
-        try {
-          const { data: profileData, error } = await supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', user.id)
-            .single();
-            
-          if (error) throw error;
-          
-          if (profileData) {
-            setName(profileData.name || "");
-          }
-          
-          // Set email from auth user data
-          setEmail(user.email || "");
-        } catch (error) {
-          console.error("Error fetching profile:", error);
+    if (profile && user?.email) {
+      setFirstName(profile.first_name || "");
+      setLastName(profile.last_name || "");
+      const emailUsername = user.email.split('@')[0];
+      setUsername(profile.username || emailUsername || "");
+      
+      // Check newsletter subscription status
+      const checkSubscription = async () => {
+        const { data, error } = await supabase
+          .from('newsletter_subscribers')
+          .select('subscribed_at')
+          .eq('email', user.email)
+          .single();
+        
+        if (!error && data) {
+          setIsSubscribed(!!data.subscribed_at);
         }
       };
       
-      fetchProfile();
+      checkSubscription();
     }
-  }, [user]);
+  }, [profile, user]);
+
+  // Check username uniqueness when it changes
+  useEffect(() => {
+    const checkUsername = async () => {
+      if (!username || username === profile?.username) {
+        setUsernameError(null);
+        return;
+      }
+
+      setIsCheckingUsername(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', username)
+          .neq('id', user?.id || '')
+          .single();
+
+        if (error && error.code === 'PGRST116') {
+          // No matching username found - this is good
+          setUsernameError(null);
+        } else if (data) {
+          setUsernameError('This username is already taken');
+        }
+      } catch (error) {
+        console.error('Error checking username:', error);
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(checkUsername, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [username, profile?.username, user?.id]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.email || usernameError) return;
     
-    if (!user) return;
-    
-    setIsLoading(true);
+    setIsUpdating(true);
     try {
-      // Update profile in database
-      const { error } = await supabase
+      // Update profile
+      const { error: profileError } = await supabase
         .from('profiles')
-        .update({ name, updated_at: new Date().toISOString() })
+        .update({ 
+          first_name: firstName,
+          last_name: lastName,
+          username: username, 
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', user.id);
         
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update newsletter subscription
+      const { error: newsletterError } = await supabase
+        .from('newsletter_subscribers')
+        .upsert({
+          email: user.email,
+          subscribed_at: isSubscribed ? new Date().toISOString() : null,
+          unsubscribed_at: isSubscribed ? null : new Date().toISOString()
+        }, {
+          onConflict: 'email'
+        });
+
+      if (newsletterError) throw newsletterError;
       
       // Invalidate the profile query to refresh data
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
       
       toast({
         title: "Profile Updated",
         description: "Your profile has been updated successfully."
       });
-    } catch (error) {
-      console.error("Error updating profile:", error);
+    } catch (_error) {
+      console.error("Error updating profile:", _error);
       toast({
         title: "Update Failed",
         description: "There was an error updating your profile.",
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsUpdating(false);
     }
   };
 
@@ -89,7 +145,7 @@ const Profile = () => {
         description: "You have been signed out successfully.",
       });
       navigate('/signin');
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Error",
         description: "Failed to sign out. Please try again.",
@@ -98,14 +154,25 @@ const Profile = () => {
     }
   };
 
+  // Dedicated handler for input changes
+  const handleInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => 
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.currentTarget) {
+        setter(e.currentTarget.value);
+      }
+  };
+
+  if (isProfileLoading) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  }
+
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Include app sidebar here */}
       <div className="flex-1 flex flex-col">
-        {/* App header */}
         <div className="h-16 border-b flex items-center px-6">
           <div className="flex-1 flex items-center">
             <button 
+              type="button"
               onClick={() => navigate('/')}
               className="mr-4 p-2 rounded hover:bg-muted"
             >
@@ -118,28 +185,8 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Profile content */}
         <div className="flex-1 p-6">
           <div className="max-w-2xl mx-auto space-y-8">
-            {/* Development Banner */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 pt-0.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 16v-4"/>
-                    <path d="M12 8h.01"/>
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-blue-800">Development in Progress</h3>
-                  <div className="mt-2 text-sm text-blue-700">
-                    <p>CloudNotes is currently in development phase. Many features are under construction and will be available soon. We'll send a newsletter when the first beta version is ready!</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -149,7 +196,7 @@ const Profile = () => {
                   </div>
                   <Avatar className="h-16 w-16">
                     <AvatarFallback className="text-xl bg-primary text-primary-foreground">
-                      {name ? name.charAt(0).toUpperCase() : "U"}
+                      {firstName ? firstName.charAt(0).toUpperCase() : "U"}
                     </AvatarFallback>
                   </Avatar>
                 </div>
@@ -157,28 +204,65 @@ const Profile = () => {
               <CardContent>
                 <form onSubmit={handleUpdateProfile} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
+                    <Label htmlFor="firstName">First Name</Label>
                     <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Your name"
+                      id="firstName"
+                      value={firstName}
+                      onChange={handleInputChange(setFirstName)}
+                      placeholder="Your first name"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={lastName}
+                      onChange={handleInputChange(setLastName)}
+                      placeholder="Your last name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      value={username}
+                      onChange={handleInputChange(setUsername)}
+                      placeholder="Your username"
+                      className={usernameError ? "border-red-500" : ""}
+                    />
+                    {isCheckingUsername && (
+                      <p className="text-sm text-muted-foreground">Checking username availability...</p>
+                    )}
+                    {usernameError && (
+                      <p className="text-sm text-red-500">{usernameError}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
-                      value={email}
+                      value={user?.email || ""}
                       disabled
                       className="bg-muted"
                     />
-                    <p className="text-sm text-muted-foreground">
-                      Email cannot be changed
-                    </p>
                   </div>
-                  <Button type="submit" disabled={isLoading} className="w-full">
-                    {isLoading ? "Updating..." : "Update Profile"}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="newsletter"
+                      checked={isSubscribed}
+                      onCheckedChange={(checked) => setIsSubscribed(checked === true)}
+                      disabled={isUpdating}
+                    />
+                    <Label htmlFor="newsletter" className="text-sm text-muted-foreground">
+                      Subscribe to our newsletter for updates and tips
+                    </Label>
+                  </div>
+                  <Button 
+                    type="submit" 
+                    disabled={isUpdating || !!usernameError || isCheckingUsername} 
+                    className="w-full"
+                  >
+                    {isUpdating ? "Updating..." : "Update Profile"}
                   </Button>
                 </form>
               </CardContent>
