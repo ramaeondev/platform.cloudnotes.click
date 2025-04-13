@@ -1,4 +1,4 @@
--- Fix handle_new_user function to include sequence column for new categories
+-- Update handle_new_user function to call edge function first, then create DB entries
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -28,7 +28,7 @@ BEGIN
     -- Log the response
     RAISE NOTICE 'Edge function response - Status: %, Body: %', response_status, response_body;
 
-    -- If the response status is not 200, raise an exception
+    -- If the response status is not 200 or 201, raise an exception
     IF response_status != 201 AND response_status != 200 THEN
       RAISE EXCEPTION 'Edge function returned status %', response_status;
     END IF;
