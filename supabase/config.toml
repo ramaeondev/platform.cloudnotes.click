@@ -45,12 +45,6 @@ verify_jwt = true
 import_map = "./functions/newsletter-unsubscribe/deno.json"
 entrypoint = "./functions/newsletter-unsubscribe/index.ts"
 
-[functions.create-newuser-folder]
-enabled = true
-verify_jwt = true
-import_map = "./functions/create-newuser-folder/deno.json"
-entrypoint = "./functions/create-newuser-folder/index.ts"
-
 [functions.category-operations]
 enabled = true
 verify_jwt = true

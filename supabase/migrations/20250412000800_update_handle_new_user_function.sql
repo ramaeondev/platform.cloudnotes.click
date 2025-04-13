@@ -15,8 +15,15 @@ BEGIN
   -- Create DB records first - these are critical
   
   -- Create the user profile
-  INSERT INTO public.profiles (id, name)
-  VALUES (new.id, COALESCE(new.raw_user_meta_data->>'name', new.email));
+  INSERT INTO public.profiles (id, first_name, last_name, username, email, is_initial_setup_completed)
+  VALUES (
+      new.id,
+      COALESCE(new.raw_user_meta_data->>'first_name', NULL),
+      COALESCE(new.raw_user_meta_data->>'last_name', NULL),
+      regexp_replace(new.email, '@.*$', ''),
+      new.email,
+      true
+  );
 
   -- Create a default 'Root' folder for the user that cannot be deleted
   INSERT INTO public.folders (name, user_id, is_system)
@@ -79,4 +86,4 @@ BEGIN
   
   RETURN new;
 END;
-$$; 
+$$;

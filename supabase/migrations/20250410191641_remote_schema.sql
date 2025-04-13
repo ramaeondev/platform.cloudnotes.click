@@ -1,5 +1,3 @@
-
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -90,8 +88,6 @@ CREATE OR REPLACE FUNCTION "public"."create_default_root_folder"() RETURNS "trig
     LANGUAGE "plpgsql"
     AS $$
 BEGIN
-  INSERT INTO public.folders (name, user_id)
-  VALUES ('Root', NEW.id);
   RETURN NEW;
 END;
 $$;
@@ -104,56 +100,7 @@ CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
-DECLARE
-  response_status integer;
-  response_body text;
 BEGIN
-  -- Create the user profile
-  INSERT INTO public.profiles (id, name)
-  VALUES (new.id, COALESCE(new.raw_user_meta_data->>'name', new.email));
-  
-  -- Create a default 'Root' folder for the user that cannot be deleted
-  INSERT INTO public.folders (name, user_id, is_system)
-  VALUES ('Root', new.id, true);
-  
-  -- Create a default category with white color that cannot be deleted
-  INSERT INTO public.categories (name, color, user_id, is_system)
-  VALUES ('Default', 'none', new.id, true);
-
-  -- Add user to newsletter subscribers if they don't already exist
-  INSERT INTO public.newsletter_subscribers (email)
-  VALUES (new.email)
-  ON CONFLICT (email) 
-  DO UPDATE SET subscribed_at = now(), unsubscribed_at = NULL;
-
-  -- Call the edge function to create a folder in S3 with error handling
-  BEGIN
-    SELECT 
-      status,
-      content::text
-    INTO 
-      response_status,
-      response_body
-    FROM
-      net.http_post(
-        url := 'https://' || current_setting('supabase_functions_endpoint') || '/create-newuser-folder',
-        body := json_build_object('uuid', new.id),
-        headers := '{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('supabase.anon_key') || '"}'
-      );
-
-    -- Log the response
-    RAISE NOTICE 'Edge function response - Status: %, Body: %', response_status, response_body;
-
-    -- If the response status is not 200, raise an exception
-    IF response_status != 200 THEN
-      RAISE EXCEPTION 'Edge function call failed with status %: %', response_status, response_body;
-    END IF;
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- Log the error but don't fail the transaction
-      RAISE WARNING 'Error calling edge function: %', SQLERRM;
-  END;
-  
   RETURN new;
 END;
 $$;
@@ -248,10 +195,14 @@ ALTER TABLE "public"."notes" OWNER TO "postgres";
 
 CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "id" "uuid" NOT NULL,
-    "name" "text",
+    "first_name" "text",
     "avatar_url" "text",
     "updated_at" timestamp with time zone DEFAULT "now"(),
-    "created_at" timestamp with time zone DEFAULT "now"()
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "last_name" "text",
+    "username" "text" UNIQUE,
+    "email" "text" UNIQUE,
+    "is_initial_setup_completed" boolean DEFAULT false
 );
 
 
