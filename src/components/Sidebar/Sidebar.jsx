@@ -355,7 +355,14 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
   return (
     <div className="flex flex-col h-full bg-sidebar text-white">
       {/* Folders section */}
-      <div className="overflow-y-auto" style={{ height: `${100 - categoriesHeight}%` }}>
+      <div 
+        className="overflow-y-scroll custom-scrollbar force-scrollbar" 
+        style={{ 
+          height: `${100 - categoriesHeight}%`,
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(255, 255, 255, 0.3) var(--sidebar-background)',
+        }}
+      >
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-medium text-white">Folders</h3>
@@ -426,7 +433,13 @@ const Sidebar = ({ onFolderSelect, onCategorySelect, selectedFolderId, selectedC
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto px-3 custom-scrollbar">
+        <div 
+          className="flex-1 overflow-y-scroll custom-scrollbar force-scrollbar px-3" 
+          style={{ 
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(255, 255, 255, 0.3) var(--sidebar-background)',
+          }}
+        >
           {categories?.length > 0 ? (
             <DndContext
               sensors={sensors}
