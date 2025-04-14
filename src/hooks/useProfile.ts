@@ -32,33 +32,44 @@ export const useProfile = () => {
         .single();
 
       if (error) {
+        console.error('Profile fetch error:', error);
         throw error;
       }
 
       if (!data) {
+        console.error('No profile data found');
         throw new Error('No profile data found');
       }
 
-      // First cast to unknown, then to DatabaseProfile to avoid type errors
-      const dbProfile = data as unknown as DatabaseProfile;
+      console.log('Raw profile data from DB:', {
+        full_data: data,
+        last_name: data.last_name,
+        username: data.username
+      });
 
-      // Map the database response to our ProfileModel
+      // Map the database response directly to ProfileModel
       const profile: ProfileModel = {
-        id: dbProfile.id,
-        first_name: dbProfile.first_name,
-        last_name: dbProfile.last_name,
-        username: dbProfile.username,
-        email: dbProfile.email,
-        avatar_url: dbProfile.avatar_url,
-        is_initial_setup_completed: dbProfile.is_initial_setup_completed ?? false,
-        updated_at: dbProfile.updated_at,
-        created_at: dbProfile.created_at
+        id: data.id,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        username: data.username,
+        email: data.email,
+        avatar_url: data.avatar_url,
+        is_initial_setup_completed: data.is_initial_setup_completed,
+        updated_at: data.updated_at,
+        created_at: data.created_at
       };
+
+      console.log('Mapped profile data:', {
+        profile_object: profile,
+        last_name: profile.last_name,
+        username: profile.username
+      });
 
       return profile;
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // Consider data stale after 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep data in cache for 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 };

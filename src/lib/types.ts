@@ -49,7 +49,7 @@ export interface ProfileModel {
   username: string | null;
   email: string | null;
   avatar_url: string | null;
-  is_initial_setup_completed: boolean;
+  is_initial_setup_completed: boolean | null;
   updated_at: string | null;
   created_at: string | null;
 }

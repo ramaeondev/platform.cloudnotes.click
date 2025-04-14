@@ -108,6 +108,11 @@ const AppContent = () => {
         givenName={profile?.first_name || ''}
         isOpen={!isInitialSetupCompleted}
         onComplete={handleProfileComplete}
+        initialData={profile ? {
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          username: profile.username
+        } : undefined}
       />
     </BrowserRouter>
   );

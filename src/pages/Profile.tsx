@@ -29,32 +29,62 @@ const Profile = () => {
 
   // Update state when profile data loads or user changes
   useEffect(() => {
-    if (profile && user?.email) {
-      setFirstName(profile.first_name || "");
-      setLastName(profile.last_name || "");
-      const emailUsername = user.email.split('@')[0];
-      setUsername(profile.username || emailUsername || "");
+    if (profile) {
+      // Log the received profile data
+      console.log('Setting profile data:', {
+        received_profile: profile,
+        last_name_value: profile.last_name,
+        username_value: profile.username
+      });
+
+      // Important: Use nullish coalescing to handle null values
+      const newFirstName = profile.first_name ?? "";
+      const newLastName = profile.last_name ?? "";
+      const newUsername = profile.username ?? "";
+
+      // Set the state values
+      setFirstName(newFirstName);
+      setLastName(newLastName);
+      setUsername(newUsername);
+
+      // Log the new values being set
+      console.log('New values being set:', {
+        newFirstName,
+        newLastName,
+        newUsername
+      });
       
-      // Check newsletter subscription status
-      const checkSubscription = async () => {
-        const { data, error } = await supabase
-          .from('newsletter_subscribers')
-          .select('subscribed_at')
-          .eq('email', user.email)
-          .single();
+      // Check newsletter subscription status if user email exists
+      if (user?.email) {
+        const checkSubscription = async () => {
+          const { data, error } = await supabase
+            .from('newsletter_subscribers')
+            .select('subscribed_at')
+            .eq('email', user.email as string)
+            .single();
+          
+          if (!error && data) {
+            setIsSubscribed(!!data.subscribed_at);
+          }
+        };
         
-        if (!error && data) {
-          setIsSubscribed(!!data.subscribed_at);
-        }
-      };
-      
-      checkSubscription();
+        checkSubscription();
+      }
     }
   }, [profile, user]);
 
+  // Log state changes
+  useEffect(() => {
+    console.log('State values changed:', {
+      firstName,
+      lastName,
+      username
+    });
+  }, [firstName, lastName, username]);
+
   // Check username uniqueness when it changes
   useEffect(() => {
-    const checkUsername = async () => {
+    const validateUsername = async () => {
       if (!username || username === profile?.username) {
         setUsernameError(null);
         return;
@@ -62,27 +92,39 @@ const Profile = () => {
 
       setIsCheckingUsername(true);
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('username', username)
-          .neq('id', user?.id || '')
-          .single();
+        const session = (await supabase.auth.getSession()).data.session;
+        if (!session?.access_token) {
+          throw new Error('No access token available');
+        }
 
-        if (error && error.code === 'PGRST116') {
-          // No matching username found - this is good
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-username`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            username,
+            userId: user?.id
+          }),
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          setUsernameError(result.error);
+        } else {
           setUsernameError(null);
-        } else if (data) {
-          setUsernameError('This username is already taken');
         }
       } catch (error) {
-        console.error('Error checking username:', error);
+        console.error('Error validating username:', error);
+        setUsernameError('Failed to validate username');
       } finally {
         setIsCheckingUsername(false);
       }
     };
 
-    const debounceTimer = setTimeout(checkUsername, 500);
+    const debounceTimer = setTimeout(validateUsername, 500);
     return () => clearTimeout(debounceTimer);
   }, [username, profile?.username, user?.id]);
 
@@ -157,10 +199,10 @@ const Profile = () => {
   // Dedicated handler for input changes
   const handleInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => 
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.currentTarget) {
-        setter(e.currentTarget.value);
+      if (e.target instanceof HTMLInputElement) {
+        setter(e.target.value);
       }
-  };
+    };
 
   if (isProfileLoading) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
@@ -207,6 +249,7 @@ const Profile = () => {
                     <Label htmlFor="firstName">First Name</Label>
                     <Input
                       id="firstName"
+                      name="firstName"
                       value={firstName}
                       onChange={handleInputChange(setFirstName)}
                       placeholder="Your first name"
@@ -216,6 +259,7 @@ const Profile = () => {
                     <Label htmlFor="lastName">Last Name</Label>
                     <Input
                       id="lastName"
+                      name="lastName"
                       value={lastName}
                       onChange={handleInputChange(setLastName)}
                       placeholder="Your last name"
@@ -225,6 +269,7 @@ const Profile = () => {
                     <Label htmlFor="username">Username</Label>
                     <Input
                       id="username"
+                      name="username"
                       value={username}
                       onChange={handleInputChange(setUsername)}
                       placeholder="Your username"

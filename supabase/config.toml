@@ -30,8 +30,6 @@ additional_redirect_urls = ["https://platform.cloudnotes.click/auth/confirm"]
 [analytics]
 enabled = false
 
-[functions.send-email]
-verify_jwt = true
 
 [functions.newsletter-subscribe]
 enabled = true
@@ -50,3 +48,8 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/category-operations/deno.json"
 entrypoint = "./functions/category-operations/index.ts"
+
+[functions.validate-username]
+verify_jwt = true 
+import_map = "./functions/validate-username/deno.json"
+entrypoint = "./functions/validate-username/index.ts"
