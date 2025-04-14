@@ -187,7 +187,7 @@ const useCustomAuth = () => {
             first_name: firstName,
             last_name: lastName || null,
             username: email.split('@')[0],
-            is_initial_setup_completed: true,
+            is_initial_setup_completed: false, // Set to false so user has to complete setup
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
@@ -198,9 +198,8 @@ const useCustomAuth = () => {
         } else {
           console.log('Profile created successfully for user:', data.user.id);
           
-          // Create default folders and categories
-          await createDefaultFolders(data.user.id);
-          await createDefaultCategories(data.user.id);
+          // No longer creating folders and categories here
+          // Will be created after profile setup is completed
           
           // Add to newsletter
           await addToNewsletter(email);

@@ -15,6 +15,7 @@ import { supabase } from '../../integrations/supabase/client.ts';
 import { PostgrestError } from '@supabase/supabase-js';
 import { useUsernameValidator } from '../../hooks/useUsernameValidator.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
+import { useNavigate } from 'react-router-dom';
 
 interface ProfileSetupModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ const ProfileSetupModal = ({
   initialData 
 }: ProfileSetupModalProps) => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
@@ -216,6 +218,8 @@ const ProfileSetupModal = ({
         title: 'Logged Out',
         description: 'You have been successfully logged out.',
       });
+      // Navigate to the sign-in page after successful logout
+      navigate('/signin');
     } catch (error) {
       console.error('Logout failed:', error);
       toast({
