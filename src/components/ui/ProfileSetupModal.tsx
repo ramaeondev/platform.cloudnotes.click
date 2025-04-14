@@ -88,56 +88,6 @@ const ProfileSetupModal = ({
     return null;
   };
   
-  // Function to create default folders for the user
-  const createDefaultFolders = async (userId: string) => {
-    try {
-      console.log('Creating default folders for user:', userId);
-      
-      // Create a default 'Root' folder
-      const { error } = await supabase
-        .from('folders')
-        .insert({
-          name: 'Root',
-          user_id: userId,
-          is_system: true
-        });
-      
-      if (error) {
-        console.error("Failed to create default folder:", error);
-      } else {
-        console.log('Default folder created for user:', userId);
-      }
-    } catch (error) {
-      console.error("Error creating default folders:", error);
-    }
-  };
-  
-  // Function to create default categories for the user
-  const createDefaultCategories = async (userId: string) => {
-    try {
-      console.log('Creating default categories for user:', userId);
-      
-      // Create a default category with white color
-      const { error } = await supabase
-        .from('categories')
-        .insert({
-          name: 'Default',
-          color: '#FFFFFF',
-          user_id: userId,
-          is_system: true,
-          sequence: 1
-        });
-      
-      if (error) {
-        console.error("Failed to create default category:", error);
-      } else {
-        console.log('Default category created for user:', userId);
-      }
-    } catch (error) {
-      console.error("Error creating default categories:", error);
-    }
-  };
-  
   const customUsernameError = validateUsername(username);
   // Combine custom validation with hook validation
   const combinedUsernameError = customUsernameError || usernameError;
@@ -186,11 +136,7 @@ const ProfileSetupModal = ({
 
       console.log('ProfileSetupModal - Update successful');
       
-      // Create default folders and categories after successful profile update
-      if (user?.id) {
-        await createDefaultFolders(user.id);
-        await createDefaultCategories(user.id);
-      }
+      // Default folders and categories are now created by database triggers
       
       toast({
         title: 'Profile Updated',
@@ -211,26 +157,6 @@ const ProfileSetupModal = ({
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      toast({
-        title: 'Logged Out',
-        description: 'You have been successfully logged out.',
-      });
-      // Navigate to the sign-in page after successful logout
-      navigate('/signin');
-    } catch (error) {
-      console.error('Logout failed:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to log out. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Handle input changes
   const handleFirstNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFirstName(e.target.value);
   };
@@ -243,83 +169,91 @@ const ProfileSetupModal = ({
     setUsername(e.target.value);
   };
 
+  const handleSkip = () => {
+    console.log('User skipped profile setup');
+    onComplete();
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/signin');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to sign out',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Complete Your Profile</DialogTitle>
-          <DialogDescription>
-            Please provide some additional information to complete your profile setup.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="firstName">First Name</Label>
-            <Input
-              id="firstName"
-              value={firstName}
-              onChange={handleFirstNameChange}
-              placeholder="Your first name"
-              required
-              className={firstNameError ? "border-red-500" : ""}
-            />
-            {firstNameError && (
-              <p className="text-sm text-red-500">{firstNameError}</p>
-            )}
+    <Dialog open={isOpen}>
+      <DialogContent className="sm:max-w-[425px]">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Complete Your Profile</DialogTitle>
+            <DialogDescription>
+              Please provide some additional information to complete your profile.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="first-name">
+                First name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="first-name"
+                value={firstName}
+                onChange={handleFirstNameChange}
+                placeholder="First name"
+                required
+              />
+              {firstNameError && (
+                <p className="text-sm text-red-500">{firstNameError}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="last-name">Last name</Label>
+              <Input
+                id="last-name"
+                value={lastName}
+                onChange={handleLastNameChange}
+                placeholder="Last name (optional)"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="username">
+                Username <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={handleUsernameChange}
+                placeholder="Choose a username"
+                required
+                className={combinedUsernameError ? "border-red-500" : ""}
+              />
+              {isCheckingUsername && (
+                <p className="text-sm text-gray-500">Checking username...</p>
+              )}
+              {combinedUsernameError && (
+                <p className="text-sm text-red-500">{combinedUsernameError}</p>
+              )}
+            </div>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name</Label>
-            <Input
-              id="lastName"
-              value={lastName}
-              onChange={handleLastNameChange}
-              placeholder="Last Name"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              value={username}
-              onChange={handleUsernameChange}
-              placeholder="Username (min. 4 characters)"
-              required
-              className={combinedUsernameError ? "border-red-500" : ""}
-            />
-            {isCheckingUsername && (
-              <p className="text-sm text-muted-foreground">Checking username availability...</p>
-            )}
-            {combinedUsernameError && (
-              <p className="text-sm text-red-500">{combinedUsernameError}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              value={email}
-              disabled
-              className="bg-muted"
-            />
-          </div>
-
-          <DialogFooter className="flex justify-between items-center gap-2 sm:justify-between">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={handleLogout}
-            >
-              Log Out
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isSubmitting || !isFormValid}
-            >
-              {isSubmitting ? "Saving..." : "Complete Setup"}
+          <DialogFooter className="flex justify-between">
+            <div className="flex space-x-2">
+              <Button type="button" variant="ghost" onClick={handleSkip}>
+                Skip for now
+              </Button>
+              <Button type="button" variant="outline" onClick={handleSignOut}>
+                Sign out
+              </Button>
+            </div>
+            <Button type="submit" disabled={!isFormValid || isSubmitting || isCheckingUsername}>
+              {isSubmitting ? "Saving..." : "Save profile"}
             </Button>
           </DialogFooter>
         </form>

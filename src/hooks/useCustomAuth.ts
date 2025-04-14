@@ -73,90 +73,12 @@ const emailTemplates = {
 const useCustomAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
 
-  // Create default folders for a user
-  const createDefaultFolders = async (userId: string) => {
-    try {
-      // Create a default 'Root' folder
-      const { error } = await supabase
-        .from('folders')
-        .insert({
-          name: 'Root',
-          user_id: userId,
-          is_system: true
-        });
-      
-      if (error) {
-        console.error("Failed to create default folder:", error);
-      } else {
-        console.log('Default folder created for user:', userId);
-      }
-    } catch (error) {
-      console.error("Error creating default folders:", error);
-    }
-  };
-  
-  // Create default categories for a user
-  const createDefaultCategories = async (userId: string) => {
-    try {
-      // Create a default category with white color
-      const { error } = await supabase
-        .from('categories')
-        .insert({
-          name: 'Default',
-          color: '#FFFFFF',
-          user_id: userId,
-          is_system: true,
-          sequence: 1
-        });
-      
-      if (error) {
-        console.error("Failed to create default category:", error);
-      } else {
-        console.log('Default category created for user:', userId);
-      }
-    } catch (error) {
-      console.error("Error creating default categories:", error);
-    }
-  };
-  
-  // Add user to newsletter subscribers
-  const addToNewsletter = async (email: string) => {
-    try {
-      // Try to insert, if the email already exists, update it
-      const { error } = await supabase
-        .from('newsletter_subscribers')
-        .insert({ 
-          email,
-          subscribed_at: new Date().toISOString()
-        });
-      
-      if (error) {
-        // If there was an error because the email already exists, try updating
-        if (error.code === '23505') { // Unique violation code
-          const { error: updateError } = await supabase
-            .from('newsletter_subscribers')
-            .update({ 
-              subscribed_at: new Date().toISOString(),
-              unsubscribed_at: null
-            })
-            .eq('email', email);
-          
-          if (updateError) {
-            console.error("Failed to update newsletter subscription:", updateError);
-          }
-        } else {
-          console.error("Failed to add to newsletter:", error);
-        }
-      }
-    } catch (error) {
-      console.error("Error adding to newsletter:", error);
-    }
-  };
-
   // Sign up with custom email
   const signUpWithCustomEmail = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
+      console.log('Starting signup process for:', email);
+      
       // Use Supabase's built-in signup with email confirmation
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -164,47 +86,28 @@ const useCustomAuth = () => {
         options: {
           data: { 
             name,
-            user_name: name // Add this explicitly for email template
+            user_name: name, // Add this explicitly for email template
+            first_name: name.split(' ')[0],
+            last_name: name.split(' ').slice(1).join(' '),
+            is_initial_setup_completed: false
           },
           emailRedirectTo: `${SITE_URL}/auth/confirm`,
         },
       });
 
-      if (error) throw error;
-      
-      // Immediately create a profile for the user, don't wait for confirmation
-      if (data.user) {
-        console.log('Creating profile for new user:', data.user.id);
-        
-        const firstName = name.split(' ')[0];
-        const lastName = name.split(' ').slice(1).join(' ');
-        
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: email,
-            first_name: firstName,
-            last_name: lastName || null,
-            username: email.split('@')[0],
-            is_initial_setup_completed: false, // Set to false so user has to complete setup
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-          
-        if (profileError) {
-          console.error("Failed to create profile:", profileError);
-          // Continue even if profile creation fails - the trigger might handle it
-        } else {
-          console.log('Profile created successfully for user:', data.user.id);
-          
-          // No longer creating folders and categories here
-          // Will be created after profile setup is completed
-          
-          // Add to newsletter
-          await addToNewsletter(email);
-        }
+      if (error) {
+        console.error('Auth signup error:', error);
+        throw error;
       }
+      
+      console.log('Auth signup successful, user data:', {
+        userId: data.user?.id, 
+        email: data.user?.email,
+        hasSession: !!data.session
+      });
+      
+      // Profile creation, default folders, default categories, and newsletter subscription
+      // are all handled by database triggers on auth.users
       
       toast({
         title: "Account created!",
