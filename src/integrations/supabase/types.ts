@@ -214,7 +214,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_profile_with_newsletter_status: {
+        Args: {
+          profile_id: string
+        }
+        Returns: {
+          id: string
+          first_name: string | null
+          last_name: string | null
+          username: string | null
+          email: string | null
+          avatar_url: string | null
+          is_initial_setup_completed: boolean | null
+          updated_at: string | null
+          created_at: string | null
+          newsletter_subscribed: boolean | null
+        }
+      }
     }
     Enums: {
       image_source:

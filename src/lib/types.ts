@@ -52,4 +52,5 @@ export interface ProfileModel {
   is_initial_setup_completed: boolean | null;
   updated_at: string | null;
   created_at: string | null;
+  newsletter_subscribed: boolean;
 }

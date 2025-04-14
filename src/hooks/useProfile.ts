@@ -3,7 +3,8 @@ import { supabase } from '../integrations/supabase/client.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { ProfileModel } from '../lib/types.ts';
 
-interface DatabaseProfile {
+// Define the shape of the RPC function result
+interface ProfileWithNewsletterStatus {
   id: string;
   first_name: string | null;
   last_name: string | null;
@@ -13,6 +14,7 @@ interface DatabaseProfile {
   is_initial_setup_completed: boolean | null;
   updated_at: string | null;
   created_at: string | null;
+  newsletter_subscribed: boolean | null;
 }
 
 export const useProfile = () => {
@@ -25,11 +27,11 @@ export const useProfile = () => {
         throw new Error('No user logged in');
       }
 
+      // Use the RPC function to get profile with newsletter status
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+        .rpc('get_profile_with_newsletter_status', {
+          profile_id: user.id
+        });
 
       if (error) {
         console.error('Profile fetch error:', error);
@@ -44,7 +46,8 @@ export const useProfile = () => {
       console.log('Raw profile data from DB:', {
         full_data: data,
         last_name: data.last_name,
-        username: data.username
+        username: data.username,
+        newsletter_subscribed: data.newsletter_subscribed
       });
 
       // Map the database response directly to ProfileModel
@@ -57,13 +60,15 @@ export const useProfile = () => {
         avatar_url: data.avatar_url,
         is_initial_setup_completed: data.is_initial_setup_completed,
         updated_at: data.updated_at,
-        created_at: data.created_at
+        created_at: data.created_at,
+        newsletter_subscribed: data.newsletter_subscribed || false
       };
 
       console.log('Mapped profile data:', {
         profile_object: profile,
         last_name: profile.last_name,
-        username: profile.username
+        username: profile.username,
+        newsletter_subscribed: profile.newsletter_subscribed
       });
 
       return profile;
