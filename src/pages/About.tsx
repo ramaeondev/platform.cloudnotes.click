@@ -1,22 +1,23 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "../components/ui/card.tsx";
+import { Separator } from "../components/ui/separator.tsx";
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect } from 'react';
 
 const About = () => {
   const navigate = useNavigate();
   const [readmeContent, setReadmeContent] = useState<string>('');
-  const appVersion = '0.1.0'; // App version can be updated here
+  const appVersion = '0.3.0'; // Updated version number
 
   useEffect(() => {
     // Fetch the README.md content
     fetch('/README.md')
       .then(response => response.text())
       .then(text => {
-        setReadmeContent(text);
+        // Remove the first section from README as we display it separately
+        const contentWithoutFirstSection = text.split('## Features')[1];
+        setReadmeContent('## Features' + contentWithoutFirstSection);
       })
       .catch(error => {
         console.error('Error fetching README.md:', error);
@@ -61,38 +62,27 @@ const About = () => {
                   </div>
                 </div>
                 <p className="text-muted-foreground mb-4">
-                  A cloud-based note-taking application designed for simplicity and productivity.
+                  CloudNotes is an open-source note-taking application designed for simplicity, productivity, and privacy. 
+                  Create, organize, and access your notes from anywhere with our powerful Markdown editor, folder organization, 
+                  and cloud integrations. Whether you're a student, professional, or creative mind, 
+                  CloudNotes adapts to your workflow.
                 </p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 pt-0.5">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M12 16v-4"/>
-                        <path d="M12 8h.01"/>
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">Looking for Collaborators</h3>
-                      <div className="mt-2 text-sm text-blue-700">
-                        <p>CloudNotes is an open-source project looking for passionate individuals to help build the future of note-taking. Join our community of developers, designers, and creators!</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </CardContent>
             </Card>
 
             {/* Readme Content */}
             <Card>
-              <CardContent className="pt-6 prose max-w-none">
-                <h3 className="text-xl font-semibold mb-4">README</h3>
-                <Separator className="mb-4" />
+              <CardContent className="pt-6 prose max-w-none dark:prose-invert">
                 <div className="markdown-body">
                   <ReactMarkdown>{readmeContent}</ReactMarkdown>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Footer */}
+            <div className="text-center text-sm text-muted-foreground mt-6">
+              Made with ❤️ by CloudNotes Team • {new Date().getFullYear()}
+            </div>
           </div>
         </div>
       </div>
