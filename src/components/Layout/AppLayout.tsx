@@ -409,7 +409,7 @@ const AppLayout = () => {
               </div>
               <div className="ml-3 flex-1 md:flex md:justify-between">
                 <p className="text-sm text-blue-700">
-                  CloudNotes is looking for passionate individuals to collaborate on this open-source project!
+                  CloudNotes is in developement phase is looking for passionate individuals to collaborate on this open-source project!
                 </p>
                 <p className="mt-3 text-sm md:mt-0 md:ml-6">
                   <button 

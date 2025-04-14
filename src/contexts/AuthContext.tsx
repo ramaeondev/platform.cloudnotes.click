@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from "@/hooks/use-toast";
-import useCustomAuth from '@/hooks/useCustomAuth';
+import { supabase } from '../integrations/supabase/client.ts';
+import { toast } from "../hooks/use-toast.ts";
+import useCustomAuth from '../hooks/useCustomAuth.ts';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthContextType {
   user: User | null;
@@ -33,6 +34,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const customAuth = useCustomAuth();
+  const queryClient = useQueryClient();
+
+  // Function to ensure profile exists via the RPC
+  const ensureProfileExists = async (userId: string) => {
+    try {
+      console.log('[AuthContext] Ensuring profile exists for user:', userId);
+      await supabase.rpc('get_profile_with_newsletter_status', {
+        profile_id: userId
+      });
+      // Invalidate the profile query to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+    } catch (error) {
+      console.error('[AuthContext] Error ensuring profile exists:', error);
+    }
+  };
 
   // Log loading state changes
   useEffect(() => {
@@ -62,6 +78,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
           setSession(data.session);
           setUser(data.session?.user ?? null);
+          
+          // Ensure profile exists if user is logged in
+          if (data.session?.user) {
+            await ensureProfileExists(data.session.user.id);
+          }
+          
           setIsLoading(false); // Set loading false *after* session check
           console.log('[AuthContext] Initial session checked. User:', data.session?.user ?? null);
         }
@@ -78,7 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event: string, currentSession: Session | null) => {
+      async (event: string, currentSession: Session | null) => {
         console.log('[AuthContext] onAuthStateChange event:', event, 'Session:', currentSession);
         if (isMounted) { // Check if component is still mounted
           console.log('[AuthContext] Updating state from auth change:', {
@@ -88,6 +110,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
+          
+          // Ensure profile exists if user is logged in
+          if (currentSession?.user && ['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
+            await ensureProfileExists(currentSession.user.id);
+          }
+          
           setIsLoading(false); // Ensure loading is false on state change
 
           if (event === 'SIGNED_IN') {
@@ -111,7 +139,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   const signIn = async (email: string, password: string) => {
     setIsLoading(true); // Set loading true at the start
@@ -133,6 +161,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('[AuthContext] Setting user/session from signIn result.');
         setSession(data.session);
         setUser(data.session.user);
+        
+        // Ensure profile exists
+        await ensureProfileExists(data.session.user.id);
       } else {
         // This case shouldn't happen if error is null, but log just in case
         console.warn('[AuthContext] signIn successful but no session data received.');
