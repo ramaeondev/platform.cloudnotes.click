@@ -19,8 +19,9 @@ import { getUserFolders } from '../../services/folderService.ts';
 import { getUserCategories } from '../../services/categoryService.ts';
 import { getNotesByFolder } from '../../services/noteService.ts';
 import { Note } from '../../lib/types.ts';
-import { supabase } from '../../integrations/supabase/client';
-import { SUPABASE_URL } from '../../lib/env';
+import { supabase } from '../../integrations/supabase/client.ts';
+import { SUPABASE_URL } from '../../lib/env.ts';
+import { useProfile } from '../../hooks/useProfile.ts';
 
 // --- ADDED LOG ---
 console.log('[AppLayout Module] File loaded.');
@@ -32,7 +33,9 @@ const AppLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showDevBanner, setShowDevBanner] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(true);
+  const [isInitialSetupCompleted, setIsInitialSetupCompleted] = useState(true);
   const { user, signOut } = useAuth();
+  const { data: profile } = useProfile();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -164,6 +167,13 @@ const AppLayout = () => {
     enabled: !!user
   });
 
+  // Update initial setup status based on profile data
+  useEffect(() => {
+    if (profile?.is_initial_setup_completed !== null && profile?.is_initial_setup_completed !== undefined) {
+      setIsInitialSetupCompleted(profile.is_initial_setup_completed);
+    }
+  }, [profile]);
+
   // Detect when data is loaded
   useEffect(() => {
     if (!isFoldersLoading && !isCategoriesLoading && !isNotesLoading) {
@@ -198,31 +208,28 @@ const AppLayout = () => {
 
   const handleFolderSelect = (folderId: string | null) => {
     setSelectedFolderId(folderId);
-    setSelectedCategoryId(null); // Clear category selection when folder is selected
-    setSelectedNote(null);
+    setSelectedCategoryId(null);
   };
-
+  
   const handleCategorySelect = (categoryId: string | null) => {
     setSelectedCategoryId(categoryId);
-    setSelectedFolderId(null); // Clear folder selection when category is selected
-    setSelectedNote(null);
+    setSelectedFolderId(null);
   };
-
+  
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
   
   const handleSignOut = async () => {
     try {
-      // Clear all queries before signing out
-      queryClient.clear();
       await signOut();
-      toast({
-        title: "Signed out",
-        description: "You have been signed out successfully.",
-      });
       navigate('/signin');
-    } catch (_error) {
+      toast({
+        title: "Signed Out",
+        description: "You have been signed out successfully."
+      });
+    } catch (error) {
+      console.error('Sign out error:', error);
       toast({
         title: "Error",
         description: "Failed to sign out. Please try again.",
@@ -230,11 +237,11 @@ const AppLayout = () => {
       });
     }
   };
-
+  
   const handleNavigateToProfile = () => {
     navigate('/profile');
   };
-
+  
   const handleNavigateToIntegrations = () => {
     navigate('/integrations');
   };
@@ -246,6 +253,10 @@ const AppLayout = () => {
   // Get user's first name or first initial
   const getUserDisplay = () => {
     if (!user) return 'U';
+    
+    if (profile?.first_name) {
+      return profile.first_name + (profile.last_name ? ' ' + profile.last_name : '');
+    }
     
     if (user.user_metadata?.name) {
       return user.user_metadata.name.split(' ')[0];
@@ -262,6 +273,12 @@ const AppLayout = () => {
   const getUserInitials = () => {
     if (!user) return 'U';
     
+    if (profile?.first_name) {
+      const firstInitial = profile.first_name[0];
+      const lastInitial = profile.last_name ? profile.last_name[0] : '';
+      return (firstInitial + lastInitial).toUpperCase();
+    }
+    
     if (user.user_metadata?.name) {
       const nameParts = user.user_metadata.name.split(' ');
       if (nameParts.length > 1) {
@@ -276,43 +293,6 @@ const AppLayout = () => {
     
     return 'U';
   };
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const { data: user } = await supabase.auth.getUser();
-      if (user) {
-        if (!user?.id) {
-          console.error('User ID is missing');
-          return;
-        }
-
-        const session = (await supabase.auth.getSession()).data.session;
-        if (!session?.access_token) {
-          console.error('No access token available');
-          return;
-        }
-
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/profile-operations`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ id: user.id }),
-        });
-
-        if (response.ok) {
-          const profile = await response.json();
-          setUserProfile(profile);
-          setIsInitialSetupCompleted(profile.is_initial_setup_completed);
-        } else {
-          console.error('Failed to fetch profile');
-        }
-      }
-    };
-
-    fetchProfile();
-  }, [location.pathname]);
 
   if (isPageLoading) {
     return <PageLoader />;
@@ -377,8 +357,8 @@ const AppLayout = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-4 py-3 border-b">
-                  <p className="text-sm font-medium">{user?.user_metadata?.name || user?.email}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
+                  <p className="text-sm font-medium">{profile?.username || user?.user_metadata?.name || user?.email}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{profile?.email || user?.email}</p>
                 </div>
                 <DropdownMenuItem onClick={handleNavigateToProfile}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">

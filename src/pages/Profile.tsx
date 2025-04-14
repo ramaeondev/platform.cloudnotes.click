@@ -1,58 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.tsx";
-import { Avatar, AvatarFallback } from "../components/ui/avatar.tsx";
+import { useAuth } from '../contexts/AuthContext.tsx';
+import { 
+  Card, CardHeader, CardContent, CardDescription, CardTitle, CardFooter 
+} from "../components/ui/card.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { Input } from "../components/ui/input.tsx";
 import { Label } from "../components/ui/label.tsx";
-import { Checkbox } from "../components/ui/checkbox.tsx";
+import { Switch } from "../components/ui/switch.tsx";
+import { Avatar, AvatarFallback } from "../components/ui/avatar.tsx";
 import { toast } from "../hooks/use-toast.ts";
-import { useAuth } from '../contexts/AuthContext.tsx';
-import { supabase } from "../integrations/supabase/client.ts";
 import { useProfile } from '../hooks/useProfile.ts';
+import { supabase } from '../integrations/supabase/client.ts';
+import { useQueryClient } from '@tanstack/react-query';
+import { SUPABASE_URL, VITE_SUPABASE_URL } from '../lib/env.ts';
+import { useUsernameValidator } from '../hooks/useUsernameValidator.ts';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { data: profile, isLoading: isProfileLoading } = useProfile();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
-  // State for form fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-  const [usernameError, setUsernameError] = useState<string | null>(null);
+  
+  // Use our custom hook for username validation
+  const { 
+    isValid, 
+    isChecking: isCheckingUsername, 
+    error: usernameError 
+  } = useUsernameValidator({
+    username,
+    userId: user?.id,
+    currentUsername: profile?.username
+  });
 
   // Update state when profile data loads or user changes
   useEffect(() => {
     if (profile) {
-      // Log the received profile data
-      console.log('Setting profile data:', {
-        received_profile: profile,
-        last_name_value: profile.last_name,
-        username_value: profile.username
-      });
-
-      // Important: Use nullish coalescing to handle null values
-      const newFirstName = profile.first_name ?? "";
-      const newLastName = profile.last_name ?? "";
-      const newUsername = profile.username ?? "";
-
-      // Set the state values
-      setFirstName(newFirstName);
-      setLastName(newLastName);
-      setUsername(newUsername);
-
-      // Log the new values being set
-      console.log('New values being set:', {
-        newFirstName,
-        newLastName,
-        newUsername
-      });
+      setFirstName(profile.first_name || "");
+      setLastName(profile.last_name || "");
+      setUsername(profile.username || "");
       
       // Check newsletter subscription status if user email exists
       if (user?.email) {
@@ -81,52 +73,6 @@ const Profile = () => {
       username
     });
   }, [firstName, lastName, username]);
-
-  // Check username uniqueness when it changes
-  useEffect(() => {
-    const validateUsername = async () => {
-      if (!username || username === profile?.username) {
-        setUsernameError(null);
-        return;
-      }
-
-      setIsCheckingUsername(true);
-      try {
-        const session = (await supabase.auth.getSession()).data.session;
-        if (!session?.access_token) {
-          throw new Error('No access token available');
-        }
-
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-username`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            username,
-            userId: user?.id
-          }),
-        });
-
-        const result = await response.json();
-        
-        if (!response.ok) {
-          setUsernameError(result.error);
-        } else {
-          setUsernameError(null);
-        }
-      } catch (error) {
-        console.error('Error validating username:', error);
-        setUsernameError('Failed to validate username');
-      } finally {
-        setIsCheckingUsername(false);
-      }
-    };
-
-    const debounceTimer = setTimeout(validateUsername, 500);
-    return () => clearTimeout(debounceTimer);
-  }, [username, profile?.username, user?.id]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,9 +145,9 @@ const Profile = () => {
   // Dedicated handler for input changes
   const handleInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => 
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target instanceof HTMLInputElement) {
-        setter(e.target.value);
-      }
+      // TypeScript knows e.target is HTMLInputElement because of the generic type parameter
+      const value = e.target.value;
+      setter(value);
     };
 
   if (isProfileLoading) {
@@ -292,7 +238,7 @@ const Profile = () => {
                     />
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox
+                    <Switch
                       id="newsletter"
                       checked={isSubscribed}
                       onCheckedChange={(checked) => setIsSubscribed(checked === true)}
