@@ -86,6 +86,56 @@ const ProfileSetupModal = ({
     return null;
   };
   
+  // Function to create default folders for the user
+  const createDefaultFolders = async (userId: string) => {
+    try {
+      console.log('Creating default folders for user:', userId);
+      
+      // Create a default 'Root' folder
+      const { error } = await supabase
+        .from('folders')
+        .insert({
+          name: 'Root',
+          user_id: userId,
+          is_system: true
+        });
+      
+      if (error) {
+        console.error("Failed to create default folder:", error);
+      } else {
+        console.log('Default folder created for user:', userId);
+      }
+    } catch (error) {
+      console.error("Error creating default folders:", error);
+    }
+  };
+  
+  // Function to create default categories for the user
+  const createDefaultCategories = async (userId: string) => {
+    try {
+      console.log('Creating default categories for user:', userId);
+      
+      // Create a default category with white color
+      const { error } = await supabase
+        .from('categories')
+        .insert({
+          name: 'Default',
+          color: '#FFFFFF',
+          user_id: userId,
+          is_system: true,
+          sequence: 1
+        });
+      
+      if (error) {
+        console.error("Failed to create default category:", error);
+      } else {
+        console.log('Default category created for user:', userId);
+      }
+    } catch (error) {
+      console.error("Error creating default categories:", error);
+    }
+  };
+  
   const customUsernameError = validateUsername(username);
   // Combine custom validation with hook validation
   const combinedUsernameError = customUsernameError || usernameError;
@@ -133,6 +183,12 @@ const ProfileSetupModal = ({
       if (error) throw error;
 
       console.log('ProfileSetupModal - Update successful');
+      
+      // Create default folders and categories after successful profile update
+      if (user?.id) {
+        await createDefaultFolders(user.id);
+        await createDefaultCategories(user.id);
+      }
       
       toast({
         title: 'Profile Updated',
