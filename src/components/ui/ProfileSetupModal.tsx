@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -35,7 +35,7 @@ const ProfileSetupModal = ({
   onComplete,
   initialData 
 }: ProfileSetupModalProps) => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
@@ -153,6 +153,36 @@ const ProfileSetupModal = ({
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to log out. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle input changes
+  const handleFirstNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFirstName(e.target.value);
+  };
+
+  const handleLastNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLastName(e.target.value);
+  };
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUsername(e.target.value);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent>
@@ -169,8 +199,8 @@ const ProfileSetupModal = ({
             <Input
               id="firstName"
               value={firstName}
-              onChange={(e) => setFirstName(e.currentTarget.value)}
-              placeholder="First Name"
+              onChange={handleFirstNameChange}
+              placeholder="Your first name"
               required
               className={firstNameError ? "border-red-500" : ""}
             />
@@ -184,7 +214,7 @@ const ProfileSetupModal = ({
             <Input
               id="lastName"
               value={lastName}
-              onChange={(e) => setLastName(e.currentTarget.value)}
+              onChange={handleLastNameChange}
               placeholder="Last Name"
             />
           </div>
@@ -194,7 +224,7 @@ const ProfileSetupModal = ({
             <Input
               id="username"
               value={username}
-              onChange={(e) => setUsername(e.currentTarget.value)}
+              onChange={handleUsernameChange}
               placeholder="Username (min. 4 characters)"
               required
               className={combinedUsernameError ? "border-red-500" : ""}
@@ -217,7 +247,14 @@ const ProfileSetupModal = ({
             />
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex justify-between items-center gap-2 sm:justify-between">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleLogout}
+            >
+              Log Out
+            </Button>
             <Button 
               type="submit" 
               disabled={isSubmitting || !isFormValid}
