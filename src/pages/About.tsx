@@ -67,6 +67,36 @@ const About = () => {
                   and cloud integrations. Whether you're a student, professional, or creative mind, 
                   CloudNotes adapts to your workflow.
                 </p>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6 pt-4 border-t">
+                  <div>
+                    <h3 className="text-sm font-medium">CloudNotes SaaS</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Check out our full-featured SaaS offering with end-to-end encryption and unlimited storage.
+                    </p>
+                    <a 
+                      href="https://cloudnotes.click/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline mt-2 inline-block"
+                    >
+                      Visit cloudnotes.click →
+                    </a>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium">Developer</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      This project is developed and maintained by Rama.
+                    </p>
+                    <a 
+                      href="https://rama.cloudnotes.click/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline mt-2 inline-block"
+                    >
+                      Visit developer's site →
+                    </a>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

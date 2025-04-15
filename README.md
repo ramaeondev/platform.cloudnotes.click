@@ -106,6 +106,23 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Project Link: [https://github.com/yourusername/cloudnotes-react](https://github.com/yourusername/cloudnotes-react)
 - Developer: [Your Name](https://yourwebsite.com)
 
+## Profile Creation Fix
+
+We've fixed an issue with profile creation after signup. This ensures that all users will have profiles created regardless of email confirmation status.
+
+### Testing the Fix
+
+1. Apply the migration:
+   ```bash
+   supabase db reset
+   ```
+
+2. Verify with diagnostics:
+   - Log in and navigate to `/diagnose` to access the diagnostics page
+   - Use the "Fix Profile Issues" button if needed
+
+For detailed information about the fix, see [the profile creation fix documentation](docs/profile_creation_fix.md).
+
 ---
 
 Made with ❤️ by CloudNotes Team

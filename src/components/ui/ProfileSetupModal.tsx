@@ -26,6 +26,7 @@ interface ProfileSetupModalProps {
     first_name: string | null;
     last_name: string | null;
     username: string | null;
+    email: string | null;
   };
 }
 
@@ -41,6 +42,7 @@ const ProfileSetupModal = ({
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
+  const [emailValue, setEmailValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [firstNameError, setFirstNameError] = useState<string | null>(null);
   
@@ -63,11 +65,14 @@ const ProfileSetupModal = ({
       setFirstName(initialData.first_name || '');
       setLastName(initialData.last_name || '');
       setUsername(initialData.username || '');
+      setEmailValue(initialData.email || email || '');
     } else {
       // Fallback to givenName and email-based username
       setFirstName(givenName || '');
+      setEmailValue(email || '');
       if (!username) {
-        setUsername(email.split('@')[0]);
+        const usernameFromEmail = email ? email.split('@')[0] : '';
+        setUsername(usernameFromEmail);
       }
     }
   }, [initialData, givenName, email]);
@@ -97,7 +102,8 @@ const ProfileSetupModal = ({
     !firstNameError && 
     !!username && 
     !combinedUsernameError && 
-    !isCheckingUsername;
+    !isCheckingUsername &&
+    !!emailValue;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -117,22 +123,62 @@ const ProfileSetupModal = ({
     console.log('ProfileSetupModal - Submitting data:', {
       first_name: firstName,
       last_name: lastName,
-      username
+      username,
+      email: emailValue,
+      is_initial_setup_completed: true
     });
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: firstName,
-          last_name: lastName,
-          username,
-          is_initial_setup_completed: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('email', email);
+      if (!user?.id) {
+        throw new Error('User ID is required');
+      }
 
-      if (error) throw error;
+      // Check if user has a profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        // PGRST116 means no rows returned, which is expected if profile doesn't exist
+        throw profileError;
+      }
+
+      let updateError;
+
+      if (profileData) {
+        // Update existing profile
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            first_name: firstName,
+            last_name: lastName,
+            username,
+            is_initial_setup_completed: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+        
+        updateError = error;
+      } else {
+        // Insert new profile
+        const { error } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            first_name: firstName,
+            last_name: lastName,
+            username,
+            is_initial_setup_completed: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+        
+        updateError = error;
+      }
+
+      if (updateError) throw updateError;
 
       console.log('ProfileSetupModal - Update successful');
       
@@ -224,6 +270,20 @@ const ProfileSetupModal = ({
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="email">
+                Email <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={emailValue}
+                disabled
+                className="bg-muted"
+                placeholder="Email address"
+                required
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="username">
                 Username <span className="text-red-500">*</span>
               </Label>
@@ -235,6 +295,7 @@ const ProfileSetupModal = ({
                 required
                 className={combinedUsernameError ? "border-red-500" : ""}
               />
+              <p className="text-xs text-muted-foreground mt-1">Choose carefully. Username can only be changed once.</p>
               {isCheckingUsername && (
                 <p className="text-sm text-gray-500">Checking username...</p>
               )}

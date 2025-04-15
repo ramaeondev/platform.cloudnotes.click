@@ -19,6 +19,7 @@ import About from './pages/About.tsx';
 import NotFound from './pages/NotFound.tsx';
 import TermsAndConditions from './pages/TermsAndConditions.tsx';
 import ProfileSetupModal from './components/ui/ProfileSetupModal.tsx';
+import ProfileDiagnostics from './components/diagnostics/ProfileDiagnostics.tsx';
 
 // Create a new QueryClient instance outside the component
 const queryClient = new QueryClient({
@@ -91,6 +92,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute>
               <About />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/diagnose" 
+          element={
+            <ProtectedRoute>
+              <ProfileDiagnostics />
             </ProtectedRoute>
           } 
         />

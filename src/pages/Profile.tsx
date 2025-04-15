@@ -14,7 +14,6 @@ import { useProfile } from '../hooks/useProfile.ts';
 import { supabase } from '../integrations/supabase/client.ts';
 import { useQueryClient } from '@tanstack/react-query';
 import { SUPABASE_URL, VITE_SUPABASE_URL } from '../lib/env.ts';
-import { useUsernameValidator } from '../hooks/useUsernameValidator.ts';
 import { toggleNewsletterSubscription, getNewsletterSubscriptionStatus } from '../services/newsletterService.ts';
 import {
   Dialog,
@@ -42,17 +41,6 @@ const Profile = () => {
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
-  // Use our custom hook for username validation
-  const { 
-    isValid, 
-    isChecking: isCheckingUsername, 
-    error: usernameError 
-  } = useUsernameValidator({
-    username,
-    userId: user?.id,
-    currentUsername: profile?.username
-  });
-
   // Update state when profile data loads or user changes
   useEffect(() => {
     if (profile) {
@@ -125,7 +113,7 @@ const Profile = () => {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.email || usernameError) return;
+    if (!user?.email) return;
     
     setIsUpdating(true);
     try {
@@ -135,7 +123,6 @@ const Profile = () => {
         .update({ 
           first_name: firstName,
           last_name: lastName,
-          username: username, 
           updated_at: new Date().toISOString() 
         })
         .eq('id', user.id);
@@ -356,16 +343,11 @@ const Profile = () => {
                         id="username"
                         name="username"
                         value={username}
-                        onChange={handleInputChange(setUsername)}
+                        disabled
+                        className="bg-muted"
                         placeholder="Your username"
-                        className={usernameError ? "border-red-500" : ""}
                       />
-                      {isCheckingUsername && (
-                        <p className="text-sm text-muted-foreground">Checking username availability...</p>
-                      )}
-                      {usernameError && (
-                        <p className="text-sm text-red-500">{usernameError}</p>
-                      )}
+                      <p className="text-xs text-muted-foreground mt-1">Username cannot be changed after initial setup.</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
@@ -390,7 +372,7 @@ const Profile = () => {
                     </div>
                     <Button 
                       type="submit" 
-                      disabled={isUpdating || !!usernameError || isCheckingUsername} 
+                      disabled={isUpdating} 
                       className="w-full"
                     >
                       {isUpdating ? "Updating..." : "Update Profile"}
