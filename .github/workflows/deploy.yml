@@ -47,7 +47,7 @@ jobs:
       - name: Create routing rules for SPA
         run: |
           # Create copy of index.html for common routes to handle refreshes properly
-          for route in signin signup forgot-password reset-password auth/confirm profile terms integrations; do
+          for route in signin signup forgot-password reset-password auth/confirm profile terms integrations diagnose; do
             # Create necessary parent directories
             mkdir -p /tmp/$route
             cp ./dist/index.html /tmp/$route/index.html
