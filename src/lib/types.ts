@@ -44,7 +44,7 @@ export interface User {
 
 export interface ProfileModel {
   id: string;
-  first_name: string | null;
+  name: string | null;
   last_name: string | null;
   username: string | null;
   email: string | null;

@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
-import { supabase } from '@/integrations/supabase/client';
+import { Button } from "../components/ui/button.tsx";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card.tsx";
+import { toast } from "../hooks/use-toast.ts";
+import { supabase } from '../integrations/supabase/client.ts';
 import { AuthError } from '@supabase/supabase-js';
 import { PostgrestError } from '@supabase/supabase-js';
 
@@ -12,8 +11,51 @@ const ConfirmEmail = () => {
   const [isConfirming, setIsConfirming] = useState(true);
   const [isSuccess, setIsSuccess] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Function to sign in and redirect to dashboard
+  const signInAndRedirect = async (email: string | null) => {
+    if (!email) return;
+    
+    // We need to get the password from the URL if possible
+    const searchParams = new URLSearchParams(location.search);
+    const password = searchParams.get('p');
+
+    if (!password) {
+      // If no password provided, let the user sign in manually
+      return;
+    }
+
+    try {
+      setIsSigningIn(true);
+      
+      // Sign in with email/password
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Error signing in after confirmation:', error);
+        return;
+      }
+
+      // If successful login, redirect to dashboard
+      toast({
+        title: "Signed in",
+        description: "Successfully signed in after email confirmation.",
+      });
+      
+      // Redirect to dashboard
+      navigate('/', { replace: true });
+    } catch (error) {
+      console.error('Error in automatic sign in:', error);
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
 
   useEffect(() => {
     const confirmEmail = async () => {
@@ -27,6 +69,23 @@ const ConfirmEmail = () => {
           
           if (data?.session?.user) {
             setUserEmail(data.session.user.email);
+            
+            // Add fallback profile creation after confirmation
+            try {
+              console.log('Email confirmed, ensuring profile exists...');
+              const { data: profileData, error: profileError } = await supabase.rpc('get_profile_with_newsletter_status', {
+                profile_id: data.session.user.id
+              });
+              
+              if (profileError) {
+                console.error('Error ensuring profile exists:', profileError);
+              } else {
+                console.log('Profile check/creation successful:', profileData);
+              }
+            } catch (profileCheckError) {
+              console.error('Exception during profile check:', profileCheckError);
+            }
+            
             setIsConfirming(false);
             setIsSuccess(true);
             console.log('User session:', data.session);
@@ -36,6 +95,9 @@ const ConfirmEmail = () => {
               title: "Email confirmed",
               description: "Your email has been successfully verified.",
             });
+            
+            // User is already signed in, redirect to dashboard
+            navigate('/', { replace: true });
           } else {
             setIsConfirming(false);
             throw new Error("No user session found");
@@ -73,9 +135,25 @@ const ConfirmEmail = () => {
           if (verifyError) throw verifyError;
           
           // Check if we have user email from the successful verification
-          const email = verifyData.user?.email;
-          if (email) {
-            setUserEmail(email);
+          const userEmailValue = verifyData.user?.email || null;
+          setUserEmail(userEmailValue);
+          
+          // Add fallback profile creation after token verification
+          if (verifyData.user?.id) {
+            try {
+              console.log('Email confirmed via token, ensuring profile exists...');
+              const { data: profileData, error: profileError } = await supabase.rpc('get_profile_with_newsletter_status', {
+                profile_id: verifyData.user.id
+              });
+              
+              if (profileError) {
+                console.error('Error ensuring profile exists:', profileError);
+              } else {
+                console.log('Profile check/creation successful:', profileData);
+              }
+            } catch (profileCheckError) {
+              console.error('Exception during profile check:', profileCheckError);
+            }
           }
           
           setIsConfirming(false);
@@ -85,6 +163,11 @@ const ConfirmEmail = () => {
             title: "Email confirmed",
             description: "Your email has been successfully verified.",
           });
+          
+          // If the user's email is available, try to sign them in automatically
+          if (userEmailValue) {
+            signInAndRedirect(userEmailValue);
+          }
         } catch (error) {
           console.error('Error confirming email:', error);
           toast({
@@ -98,7 +181,7 @@ const ConfirmEmail = () => {
     };
 
     confirmEmail();
-  }, [location.search, location.hash]);
+  }, [location.search, location.hash, navigate]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-cloudnotes-blue-light p-4">
@@ -114,11 +197,11 @@ const ConfirmEmail = () => {
         </div>
         
         <Card className="border-0 shadow-lg">
-          {isConfirming ? (
+          {isConfirming || isSigningIn ? (
             <CardContent className="pt-6">
               <div className="text-center py-8">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
-                <p className="text-lg">Confirming your email...</p>
+                <p className="text-lg">{isConfirming ? "Confirming your email..." : "Signing you in automatically..."}</p>
               </div>
             </CardContent>
           ) : (
