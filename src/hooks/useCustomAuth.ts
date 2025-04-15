@@ -62,31 +62,41 @@ const useCustomAuth = () => {
           
           if (profileError) {
             console.error('Error creating profile:', profileError);
+            // Continue anyway, don't block signup process
           } else {
             console.log('Profile created:', profileData);
             
-            // Create default folder
-            await supabase
-              .from('folders')
-              .insert({
-                name: 'Root',
-                user_id: data.user.id,
-                is_system: true
-              });
+            // Try to create default folder, but don't block on failure
+            try {
+              await supabase
+                .from('folders')
+                .insert({
+                  name: 'Root',
+                  user_id: data.user.id,
+                  is_system: true
+                });
+            } catch (folderError) {
+              console.error('Error creating default folder:', folderError);
+            }
               
-            // Create default category
-            await supabase
-              .from('categories')
-              .insert({
-                name: 'Default',
-                color: '#6366F1',
-                user_id: data.user.id,
-                is_system: true,
-                sequence: 1
-              });
+            // Try to create default category, but don't block on failure
+            try {
+              await supabase
+                .from('categories')
+                .insert({
+                  name: 'Default',
+                  color: '#6366F1',
+                  user_id: data.user.id,
+                  is_system: true,
+                  sequence: 1
+                });
+            } catch (categoryError) {
+              console.error('Error creating default category:', categoryError);
+            }
           }
         } catch (profileError) {
           console.error('Exception creating profile:', profileError);
+          // Continue anyway, don't block signup process
         }
       }
       

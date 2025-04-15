@@ -79,25 +79,21 @@ const ConfirmEmail = () => {
               
               if (profileError) {
                 console.error('Error ensuring profile exists:', profileError);
+                // Continue to dashboard anyway, don't block the user
               } else {
                 console.log('Profile check/creation successful:', profileData);
               }
             } catch (profileCheckError) {
               console.error('Exception during profile check:', profileCheckError);
+              // Continue to dashboard anyway, don't block the user
+            } finally {
+              // Always set states to success and redirect regardless of profile creation
+              setIsConfirming(false);
+              setIsSuccess(true);
+              
+              // User is already signed in, redirect to dashboard
+              navigate('/', { replace: true });
             }
-            
-            setIsConfirming(false);
-            setIsSuccess(true);
-            console.log('User session:', data.session);
-            
-            
-            toast({
-              title: "Email confirmed",
-              description: "Your email has been successfully verified.",
-            });
-            
-            // User is already signed in, redirect to dashboard
-            navigate('/', { replace: true });
           } else {
             setIsConfirming(false);
             throw new Error("No user session found");
@@ -148,14 +144,17 @@ const ConfirmEmail = () => {
               
               if (profileError) {
                 console.error('Error ensuring profile exists:', profileError);
+                // Continue anyway, don't block the user
               } else {
                 console.log('Profile check/creation successful:', profileData);
               }
             } catch (profileCheckError) {
               console.error('Exception during profile check:', profileCheckError);
+              // Continue anyway, don't block the user
             }
           }
           
+          // Always proceed to success and sign in attempt
           setIsConfirming(false);
           setIsSuccess(true);
 
