@@ -1,54 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Routes, Route, Navigate, BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext.tsx';
-import { TooltipProvider } from './components/ui/tooltip.tsx';
-import { Toaster as UIToaster } from './components/ui/toaster.tsx';
-import { Toaster } from './components/ui/sonner.tsx';
+import { AuthProvider, useAuth } from './contexts/AuthContext.tsx';
 import { useProfile } from './hooks/useProfile.ts';
+import { Toaster as HotToast } from 'react-hot-toast';
+import { TooltipProvider } from './components/ui/tooltip.tsx';
+import { Toaster } from './components/ui/sonner.tsx';
+import { Toaster as UIToaster } from './components/ui/toaster.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 import Index from './pages/Index.tsx';
 import SignIn from './pages/SignIn.tsx';
 import SignUp from './pages/SignUp.tsx';
 import ForgotPassword from './pages/ForgotPassword.tsx';
 import ResetPassword from './pages/ResetPassword.tsx';
+import TermsAndConditions from './pages/TermsAndConditions.tsx';
 import ConfirmEmail from './pages/ConfirmEmail.tsx';
 import Profile from './pages/Profile.tsx';
 import Integrations from './pages/Integrations.tsx';
 import About from './pages/About.tsx';
 import NotFound from './pages/NotFound.tsx';
-import TermsAndConditions from './pages/TermsAndConditions.tsx';
 import ProfileSetupModal from './components/ui/ProfileSetupModal.tsx';
 import ProfileDiagnostics from './components/diagnostics/ProfileDiagnostics.tsx';
+import { Loader2 } from 'lucide-react';
 
 // Create a new QueryClient instance outside the component
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // Keep data in cache for 10 minutes
-      refetchOnMount: 'always',
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: true,
-      retry: 2,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    }
-  }
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 30000,
+    },
+  },
 });
 
-// Create a wrapper component that uses the hook
-const AppContent = () => {
+const AppContent: React.FC = () => {
+  const { isLoading, user } = useAuth();
   const { data: profile } = useProfile();
-  const [isInitialSetupCompleted, setIsInitialSetupCompleted] = useState(true);
-
-  React.useEffect(() => {
-    if (profile?.is_initial_setup_completed !== null && profile?.is_initial_setup_completed !== undefined) {
-      setIsInitialSetupCompleted(profile.is_initial_setup_completed);
+  const [isInitialSetupCompleted, setIsInitialSetupCompleted] = useState(true); // Start with true to prevent flash
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  
+  useEffect(() => {
+    // Set initial setup value based on profile data
+    if (profile) {
+      setIsInitialSetupCompleted(!!profile.is_initial_setup_completed);
+      
+      // If setup is not completed, add 3-second delay before showing modal
+      if (!profile.is_initial_setup_completed) {
+        const timer = setTimeout(() => {
+          setShowProfileModal(true);
+        }, 3000); // 3000ms = 3 seconds
+        
+        return () => clearTimeout(timer);
+      }
     }
   }, [profile]);
 
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>;
+  }
+
   const handleProfileComplete = () => {
     setIsInitialSetupCompleted(true);
+    setShowProfileModal(false);
   };
 
   return (
@@ -114,11 +130,11 @@ const AppContent = () => {
       </Routes>
       <ProfileSetupModal
         email={profile?.email || ''}
-        givenName={profile?.first_name || ''}
-        isOpen={!isInitialSetupCompleted}
+        givenName={profile?.name || ''}
+        isOpen={showProfileModal}
         onComplete={handleProfileComplete}
         initialData={profile ? {
-          first_name: profile.first_name,
+          first_name: profile.name,
           last_name: profile.last_name,
           username: profile.username,
           email: profile.email
