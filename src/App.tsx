@@ -120,7 +120,8 @@ const AppContent = () => {
         initialData={profile ? {
           first_name: profile.first_name,
           last_name: profile.last_name,
-          username: profile.username
+          username: profile.username,
+          email: profile.email
         } : undefined}
       />
     </BrowserRouter>

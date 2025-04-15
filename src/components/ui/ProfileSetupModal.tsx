@@ -215,15 +215,13 @@ const ProfileSetupModal = ({
     setUsername(e.target.value);
   };
 
-  const handleSkip = () => {
-    console.log('User skipped profile setup');
-    onComplete();
-  };
-
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/signin');
+      
+      // Force a hard redirect to the sign-in page
+      // This is more reliable than react-router navigation in modal context
+      window.location.href = '/signin';
     } catch (error) {
       console.error('Error signing out:', error);
       toast({
@@ -270,20 +268,6 @@ const ProfileSetupModal = ({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">
-                Email <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={emailValue}
-                disabled
-                className="bg-muted"
-                placeholder="Email address"
-                required
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="username">
                 Username <span className="text-red-500">*</span>
               </Label>
@@ -303,16 +287,25 @@ const ProfileSetupModal = ({
                 <p className="text-sm text-red-500">{combinedUsernameError}</p>
               )}
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">
+                Email <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={emailValue}
+                disabled
+                className="bg-muted"
+                placeholder="Email address"
+                required
+              />
+            </div>
           </div>
           <DialogFooter className="flex justify-between">
-            <div className="flex space-x-2">
-              <Button type="button" variant="ghost" onClick={handleSkip}>
-                Skip for now
-              </Button>
-              <Button type="button" variant="outline" onClick={handleSignOut}>
-                Sign out
-              </Button>
-            </div>
+            <Button type="button" variant="outline" onClick={handleSignOut}>
+              Sign out
+            </Button>
             <Button type="submit" disabled={!isFormValid || isSubmitting || isCheckingUsername}>
               {isSubmitting ? "Saving..." : "Save profile"}
             </Button>
