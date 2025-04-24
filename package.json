@@ -1,8 +1,34 @@
 {
-  "name": "cloudnotes",
+  "name": "platform.cloudnotes.click",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
+  "status": "Under Development",
+  "project_id": "ff2a593f-0f1b-4c4b-9a3e-b0b8dd412f5e",
+  "update_project_version": "https://api.therama.dev/functions/v1/update-project-version",
+  "log_deployment": "https://api.therama.dev/functions/v1/log-deployment",
+  "description": "CloudNotes is an open-source note-taking application designed for simplicity, productivity, and privacy. Create, organize, and access your notes from anywhere with our powerful Markdown editor, folder organization, and cloud integrations.",
+  "author": "Ramaeon",
+  "license": "MIT",
+  "homepage": "https://platform.cloudnotes.click",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ramaeondev/platform.cloudnotes.click"
+  },
+  "keywords": [
+    "React",
+    "tailwindcss",
+    "TypeScript",
+    "Vite"
+  ],
+  "technologies": [
+    "React",
+    "Vite",
+    "Tailwind CSS",
+    "TypeScript",
+    "Node.js",
+    "Express"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",

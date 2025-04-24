@@ -35,7 +35,7 @@ const queryClient = new QueryClient({
 });
 
 const AppContent: React.FC = () => {
-  const { isLoading, user } = useAuth();
+  const { isLoading } = useAuth();
   const { data: profile } = useProfile();
   const [isInitialSetupCompleted, setIsInitialSetupCompleted] = useState(true); // Start with true to prevent flash
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -43,10 +43,11 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     // Set initial setup value based on profile data
     if (profile) {
-      setIsInitialSetupCompleted(!!profile.is_initial_setup_completed);
+      const setupCompleted = !!profile.is_initial_setup_completed;
+      setIsInitialSetupCompleted(setupCompleted);
       
       // If setup is not completed, add 3-second delay before showing modal
-      if (!profile.is_initial_setup_completed) {
+      if (!setupCompleted) {
         const timer = setTimeout(() => {
           setShowProfileModal(true);
         }, 3000); // 3000ms = 3 seconds
@@ -128,18 +129,20 @@ const AppContent: React.FC = () => {
         <Route path="/about/*" element={<Navigate to="/about" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <ProfileSetupModal
-        email={profile?.email || ''}
-        givenName={profile?.name || ''}
-        isOpen={showProfileModal}
-        onComplete={handleProfileComplete}
-        initialData={profile ? {
-          first_name: profile.name,
-          last_name: profile.last_name,
-          username: profile.username,
-          email: profile.email
-        } : undefined}
-      />
+      { !isInitialSetupCompleted && (
+        <ProfileSetupModal
+          email={profile?.email || ''}
+          givenName={profile?.name || ''}
+          isOpen={showProfileModal}
+          onComplete={handleProfileComplete}
+          initialData={profile ? {
+            first_name: profile.name,
+            last_name: profile.last_name,
+            username: profile.username,
+            email: profile.email
+          } : undefined}
+        />
+      )}
     </BrowserRouter>
   );
 };
@@ -151,7 +154,7 @@ const App: React.FC = () => {
         <AuthProvider>
           <TooltipProvider>
             <UIToaster />
-            <Toaster />
+            <HotToast />
             <AppContent />
           </TooltipProvider>
         </AuthProvider>
